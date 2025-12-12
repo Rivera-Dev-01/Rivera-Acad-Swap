@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingBag, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
     const navigate = useNavigate();
+
+    // 1. New State for the checkbox
+    const [rememberMe, setRememberMe] = useState(false);
+
     const [formData, setFormData] = useState({
         email: '',
         password: ''
@@ -11,6 +15,15 @@ const LoginPage: React.FC = () => {
 
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [showPassword, setShowPassword] = useState(false);
+
+    // 2. Effect: Check for saved email when page loads
+    useEffect(() => {
+        const savedEmail = localStorage.getItem('remembered_email');
+        if (savedEmail) {
+            setFormData(prev => ({ ...prev, email: savedEmail }));
+            setRememberMe(true); // Check the box visually
+        }
+    }, []);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -68,11 +81,6 @@ const LoginPage: React.FC = () => {
 
             console.log('=== LOGIN RESPONSE DEBUG ===');
             console.log('Full response:', data);
-            console.log('Response status:', response.status);
-            console.log('data.success:', data.success);
-            console.log('data.user:', data.user);
-            console.log('data.session:', data.session);
-            console.log('=========================');
 
             if (data.success) {
                 console.log('Login successful, processing data...');
@@ -81,36 +89,31 @@ const LoginPage: React.FC = () => {
                 if (data.session) {
                     localStorage.setItem('access_token', data.session.access_token);
                     localStorage.setItem('refresh_token', data.session.refresh_token);
-                    console.log('✓ Session tokens saved');
-                } else {
-                    console.error('⚠ No session data in response');
                 }
 
-                // Store user data - check if it exists
+                // Store user data
                 if (data.user) {
                     const userString = JSON.stringify(data.user);
                     localStorage.setItem('user', userString);
-                    console.log('✓ User data saved to localStorage:', data.user);
-                    console.log('✓ User string:', userString);
-
-                    // Verify it was saved
-                    const savedUser = localStorage.getItem('user');
-                    console.log('✓ Verification - Retrieved from localStorage:', savedUser);
                 } else {
-                    console.error('⚠ No user data in response!');
                     alert('Login successful but user data is missing. Please try again.');
                     return;
                 }
 
+                // 3. Handle "Remember Me" Logic
+                if (rememberMe) {
+                    localStorage.setItem('remembered_email', formData.email);
+                } else {
+                    localStorage.removeItem('remembered_email');
+                }
+
                 console.log('✓ Navigating to dashboard...');
-                // Navigate to dashboard
                 navigate('/dashboard', { replace: true });
             } else {
                 console.error('Login failed:', data.message);
 
-                // Check if it's a missing user data error
                 if (data.message && data.message.includes('user data is missing')) {
-                    alert('Your account is missing profile information. This usually happens with old test accounts.\n\nPlease either:\n1. Register a new account, or\n2. Contact support to update your profile.');
+                    alert('Your account is missing profile information. Please contact support.');
                 } else {
                     alert('Login failed: ' + data.message);
                 }
@@ -212,9 +215,15 @@ const LoginPage: React.FC = () => {
                                 {errors.password && <p className="text-red-400 text-sm mt-1">{errors.password}</p>}
                             </div>
 
+                            {/* 4. Updated Checkbox UI */}
                             <div className="flex items-center justify-between text-sm">
-                                <label className="flex items-center text-gray-400">
-                                    <input type="checkbox" className="mr-2 rounded" />
+                                <label className="flex items-center text-gray-400 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        className="mr-2 rounded border-gray-600 bg-slate-800 text-blue-600 focus:ring-blue-500"
+                                        checked={rememberMe}
+                                        onChange={(e) => setRememberMe(e.target.checked)}
+                                    />
                                     Remember me
                                 </label>
                                 <a href="#" className="text-blue-400 hover:text-blue-300 transition-colors">

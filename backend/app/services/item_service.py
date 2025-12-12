@@ -8,10 +8,12 @@ class ItemService:
         item_payload = {
             "title": data.get("title"),
             "category": data.get("category"),
+            "subcategory": data.get("subcategory"),
             "price": data.get("price"),
             "condition": data.get("condition"),
             "description": data.get("description"),
             "notes": data.get("notes"),
+            "size": data.get("size"),
             "images": data.get("images", []),
             "seller_id": user_id
         }
@@ -91,6 +93,8 @@ class ItemService:
             if 'created_at' in data: del data['created_at']
             if 'view_count' in data: del data['view_count']
             if 'status' in data: del data['status']
+            
+            # Allow updating: title, category, subcategory, price, condition, description, notes, size, images
 
             print(f"--- UPDATE SERVICE: Data after cleanup: {data} ---")
 
