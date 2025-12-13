@@ -120,3 +120,31 @@ class ItemService:
             traceback.print_exc()
             return {"success": False, "message": str(e)}, 500
     
+
+    @staticmethod
+    def mark_as_sold(item_id, user_id):
+        supabase = get_supabase()
+
+        try:
+            print(f"--- MARK AS SOLD SERVICE: Attempting to mark item {item_id} as sold for user {user_id} ---")
+            
+            # Check if item exists and belongs to user
+            check_response = supabase.table('items').select('*').eq('id', item_id).eq('seller_id', user_id).execute()
+            print(f"--- MARK AS SOLD SERVICE: Check response: {check_response.data} ---")
+
+            if not check_response.data or len(check_response.data) == 0:
+                print("--- MARK AS SOLD SERVICE: Item not found or no permission ---")
+                return {"success": False, "message": "Item not found or you don't have permission"}, 404
+            
+            # Update item status to 'sold'
+            print(f"--- MARK AS SOLD SERVICE: Proceeding with status update ---")
+            response = supabase.table('items').update({"status": "sold"}).eq('id', item_id).execute()
+            print(f"--- MARK AS SOLD SERVICE: Update response: {response.data} ---")
+            
+            return {"success": True, "message": "Item marked as sold successfully", "data": response.data[0] if response.data else None}, 200
+            
+        except Exception as e:
+            print(f"--- MARK AS SOLD SERVICE EXCEPTION: {e} ---")
+            import traceback
+            traceback.print_exc()
+            return {"success": False, "message": str(e)}, 500

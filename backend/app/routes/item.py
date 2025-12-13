@@ -99,6 +99,51 @@ def get_my_items():
         return jsonify({"success": False, "message": str(e)}), 500
 
 
+@item_bp.route('/items/<item_id>/mark-sold', methods=['PATCH'])
+def mark_item_as_sold(item_id):
+    print("--- 1. MARK AS SOLD REQUEST RECEIVED ---")
+    
+    try:
+        from app.services.item_service import ItemService
+        print("--- 2. SERVICE IMPORTED ---")
+    except Exception as e:
+        print(f"--- CRASH AT IMPORT: {e}")
+        return jsonify({"error": str(e)}), 500
+
+    auth_header = request.headers.get('Authorization')
+    print(f"--- 3. AUTH HEADER: {auth_header} ---")
+    
+    if not auth_header or not auth_header.startswith('Bearer '):
+        print("--- FAIL: NO TOKEN ---")
+        return jsonify({"success": False, "message": "Missing Token"}), 401
+
+    token = auth_header.replace('Bearer ', '')
+
+    try:
+        print("--- 4. CONNECTING TO SUPABASE ---")
+        supabase = get_supabase()
+        
+        print("--- 5. VERIFYING USER ---")
+        user_response = supabase.auth.get_user(token)
+        user_id = user_response.user.id
+        print(f"--- 6. USER VERIFIED: {user_id} ---")
+        
+    except Exception as e:
+        print(f"--- CRASH AT AUTH: {e}")
+        return jsonify({"success": False, "message": "Invalid Token"}), 401
+
+    try:
+        print(f"--- 7. CALLING SERVICE TO MARK ITEM AS SOLD: {item_id} ---")
+        response, status = ItemService.mark_as_sold(item_id, user_id)
+        print(f"--- 8. SERVICE FINISHED: {status} ---")
+        
+        return jsonify(response), status
+        
+    except Exception as e:
+        print(f"--- CRASH AT LOGIC: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
 @item_bp.route('/items/<item_id>', methods=['DELETE', 'PUT'])
 def manage_item(item_id):
     if request.method == 'DELETE':

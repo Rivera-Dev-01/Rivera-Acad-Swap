@@ -22,9 +22,28 @@ class UserService:
                 .eq('status', 'completed')\
                 .execute()
             
+            # Calculate total earnings from completed meetups where user is seller
+            # Optimized: Join meetups with items to get prices in one query
+            completed_meetups = supabase.table('meetups')\
+                .select('item_id, items(price)')\
+                .eq('seller_id', user_id)\
+                .eq('status', 'completed')\
+                .execute()
+            
+            total_earnings = 0
+            if completed_meetups.data:
+                for meetup in completed_meetups.data:
+                    try:
+                        # Access price from joined items data
+                        if meetup.get('items') and meetup['items'].get('price'):
+                            total_earnings += float(meetup['items']['price'])
+                    except Exception as item_error:
+                        print(f"Error calculating earnings: {item_error}")
+            
             # --- DEBUGGING PRINTS (Check your terminal) ---
             print("User Data Found:", user_response.data)
             print("Active Count:", active_listing.count)
+            print("Total Earnings:", total_earnings)
             # ---------------------------------------------
 
             return {
@@ -33,7 +52,8 @@ class UserService:
                 "user": user_response.data, 
                 "stats": {
                     "active_listings": active_listing.count or 0,
-                    "total_sales": total_sales.count or 0
+                    "total_sales": total_sales.count or 0,
+                    "total_earnings": total_earnings
                 }
             }, 200
 

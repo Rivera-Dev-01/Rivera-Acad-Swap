@@ -1,8 +1,59 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 // 1. Import React Query Hook
 import { useQuery } from '@tanstack/react-query';
 import { ShoppingBag, Bell, Package, DollarSign, TrendingUp, Users, LogOut, Star, Activity, Plus, Store, MessageSquare, Calendar, List, Mail, UserPlus, CheckCircle } from 'lucide-react';
+
+// Custom hook for smooth counting animation with fluid easing
+const useCountUp = (end: number, duration: number = 1000, shouldAnimate: boolean = true) => {
+    const [count, setCount] = useState(0);
+    const startTimeRef = useRef<number | null>(null);
+    const animationFrameRef = useRef<number>();
+
+    useEffect(() => {
+        if (!shouldAnimate) {
+            setCount(end);
+            return;
+        }
+
+        // Reset for new animation
+        setCount(0);
+        startTimeRef.current = null;
+
+        const animate = (currentTime: number) => {
+            if (!startTimeRef.current) startTimeRef.current = currentTime;
+            const elapsed = currentTime - startTimeRef.current;
+            const progress = Math.min(elapsed / duration, 1);
+
+            // Ultra-smooth easing function (easeOutExpo)
+            // Creates a very fluid, natural deceleration
+            const easeOutExpo = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+
+            // For small numbers, use linear interpolation for smoother increments
+            const currentValue = end <= 10
+                ? progress * end
+                : easeOutExpo * end;
+
+            setCount(Math.round(currentValue));
+
+            if (progress < 1) {
+                animationFrameRef.current = requestAnimationFrame(animate);
+            } else {
+                setCount(end); // Ensure we end at exact value
+            }
+        };
+
+        animationFrameRef.current = requestAnimationFrame(animate);
+
+        return () => {
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
+            }
+        };
+    }, [end, duration, shouldAnimate]);
+
+    return count;
+};
 
 // 2. Define Types
 interface DashboardStats {
@@ -48,7 +99,8 @@ const DashboardPage = () => {
             return;
         }
         try {
-            setUser(JSON.parse(userData));
+            const parsedUser = JSON.parse(userData);
+            setUser(parsedUser);
         } catch (error) {
             navigate('/login');
         }
@@ -61,9 +113,10 @@ const DashboardPage = () => {
         error: queryError,
         isError
     } = useQuery({
-        queryKey: ['dashboardStats'], // Unique ID for cache
+        queryKey: ['dashboardStats', user?.id], // Include user ID to prevent cache collision
         queryFn: fetchDashboardStats,
-        staleTime: 1000 * 60 * 5,     // Data stays "fresh" for 5 minutes (NO FLICKER)
+        staleTime: 0,     // Always refetch on mount to ensure fresh data
+        cacheTime: 0,     // Don't cache data to prevent showing wrong user's data
         retry: 1,
         enabled: !!user // Only run query when user is loaded
     });
@@ -79,17 +132,26 @@ const DashboardPage = () => {
     // 6. Merge API Data with Default Data
     // We calculate this on every render. If apiData is loaded, it overrides defaults.
     const stats = {
-        // These two exist in your Python Backend, so we read them dynamically
+        // These exist in your Python Backend, so we read them dynamically
         currentlySelling: apiData?.stats?.active_listings ?? 0,
         soldItems: apiData?.stats?.total_sales ?? 0,
+        totalEarnings: apiData?.stats?.total_earnings ?? 0,
+
+        // Reputation score from user data
+        reputationScore: apiData?.user?.reputation_score ?? 0,
 
         // These do NOT exist in your Backend yet.
         // We set them to 0 so the UI shows "0" (Clean slate) instead of an error.
-        totalEarnings: 0,
-        reputationScore: 0,
         engagementRate: 0,
         friendsCount: 0
     };
+
+    // Animated counts for smooth number transitions with fluid easing
+    // Longer durations = smoother, more fluid animations
+    const animatedCurrentlySelling = useCountUp(stats.currentlySelling, 2000, !!apiData);
+    const animatedSoldItems = useCountUp(stats.soldItems, 2200, !!apiData);
+    const animatedTotalEarnings = useCountUp(stats.totalEarnings, 2400, !!apiData);
+    const animatedReputationScore = useCountUp(stats.reputationScore, 2600, !!apiData);
 
     const [notifications] = useState([
         { id: 1, message: 'Your item "Calculus Textbook" was viewed 5 times', time: '2 hours ago', type: 'view' },
@@ -106,7 +168,7 @@ const DashboardPage = () => {
     };
 
     const getReputationStyle = (score: number) => {
-        if (score >= 5.0) {
+        if (score >= 100) {
             return {
                 label: 'MYTHIC',
                 textClass: 'text-yellow-400 font-bold animate-pulse',
@@ -114,25 +176,25 @@ const DashboardPage = () => {
                 glowClass: 'shadow-lg shadow-yellow-400/50',
                 bgClass: 'bg-gradient-to-r from-yellow-500/20 to-amber-500/20'
             };
-        } else if (score >= 4.8) {
+        } else if (score >= 75) {
             return {
-                label: 'LEGENDARY',
+                label: 'LEGEND',
                 textClass: 'text-purple-400 font-bold animate-pulse',
                 borderClass: 'border-purple-400',
                 glowClass: 'shadow-lg shadow-purple-400/50',
                 bgClass: 'bg-gradient-to-r from-purple-500/20 to-pink-500/20'
             };
-        } else if (score >= 4.2) {
-            return {
-                label: 'EPIC',
-                textClass: 'text-cyan-400 font-bold animate-pulse',
-                borderClass: 'border-cyan-400',
-                glowClass: 'shadow-lg shadow-cyan-400/50',
-                bgClass: 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20'
-            };
-        } else if (score >= 3.5) {
+        } else if (score >= 51) {
             return {
                 label: 'RARE',
+                textClass: 'text-cyan-400 font-bold',
+                borderClass: 'border-cyan-400',
+                glowClass: 'shadow-lg shadow-cyan-400/30',
+                bgClass: 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20'
+            };
+        } else if (score >= 25) {
+            return {
+                label: 'UNCOMMON',
                 textClass: 'text-green-400 font-semibold',
                 borderClass: 'border-green-400',
                 glowClass: '',
@@ -264,7 +326,7 @@ const DashboardPage = () => {
                                 <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center">
                                     <Package className="w-6 h-6" />
                                 </div>
-                                <span className="text-2xl font-bold">{stats.currentlySelling}</span>
+                                <span className="text-2xl font-bold">{animatedCurrentlySelling}</span>
                             </div>
                             <h3 className="text-gray-400 text-sm">Currently Selling</h3>
                         </div>
@@ -275,7 +337,7 @@ const DashboardPage = () => {
                                 <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-xl flex items-center justify-center">
                                     <TrendingUp className="w-6 h-6" />
                                 </div>
-                                <span className="text-2xl font-bold">{stats.soldItems}</span>
+                                <span className="text-2xl font-bold">{animatedSoldItems}</span>
                             </div>
                             <h3 className="text-gray-400 text-sm">Sold Items</h3>
                         </div>
@@ -286,7 +348,7 @@ const DashboardPage = () => {
                                 <div className="w-12 h-12 bg-gradient-to-br from-teal-500 to-teal-700 rounded-xl flex items-center justify-center">
                                     <DollarSign className="w-6 h-6" />
                                 </div>
-                                <span className="text-2xl font-bold">₱{stats.totalEarnings.toLocaleString()}</span>
+                                <span className="text-2xl font-bold">₱{animatedTotalEarnings.toLocaleString()}</span>
                             </div>
                             <h3 className="text-gray-400 text-sm">Total Earnings</h3>
                         </div>
@@ -298,7 +360,7 @@ const DashboardPage = () => {
                                     <Star className="w-6 h-6" />
                                 </div>
                                 <div className="text-right">
-                                    <span className={`text-3xl font-bold ${repStyle.textClass}`}>{stats.reputationScore.toFixed(1)}</span>
+                                    <span className={`text-3xl font-bold ${repStyle.textClass}`}>{animatedReputationScore}</span>
                                     <p className={`text-xs ${repStyle.textClass} mt-1`}>{repStyle.label}</p>
                                 </div>
                             </div>

@@ -14,10 +14,9 @@ def create_app():
     from app.routes.user import user_bp
     from app.routes.marketplace import market_bp
     from app.routes.board import board_bp
-    
-    # --- ADD THIS IMPORT ---
-    # (Make sure your file is named 'item.py' inside app/routes folder)
-    from app.routes.item import item_bp 
+    from app.routes.item import item_bp
+    from app.routes.meetup import meetup_bp
+    from app.routes.referral import referral_bp
     
     
     print("Registering blueprints...")
@@ -33,7 +32,13 @@ def create_app():
     # --- REGISTER THE ITEM BLUEPRINT ---
     # We don't add a prefix here because your route is already named '/items'
     app.register_blueprint(item_bp)
-    print("✓ Item blueprint registered") 
+    print("✓ Item blueprint registered")
+    
+    app.register_blueprint(meetup_bp, url_prefix='/api/meetup')
+    print("✓ Meetup blueprint registered")
+    
+    app.register_blueprint(referral_bp, url_prefix='/api/referral')
+    print("✓ Referral blueprint registered") 
     
     @app.route('/')
     def index():

@@ -1,75 +1,45 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Clock, MapPin, Plus, User, AlertCircle } from 'lucide-react';
+import { Calendar, MapPin, Clock, Plus } from 'lucide-react';
 import NavigationMenu from '../components/NavigationMenu';
+import CreateMeetupModal from '../components/CreateMeetupModal.tsx';
+import MeetupDetailModal from '../components/MeetupDetailModal.tsx';
 
 interface Meetup {
-    id: number;
+    id: string;
+    item_id: string;
+    seller_id: string;
+    buyer_id: string;
     title: string;
-    buyer: string;
-    seller: string;
-    item: string;
-    date: string;
-    time: string;
-    location: string;
-    status: 'upcoming' | 'completed' | 'cancelled';
+    scheduled_date: string;
+    scheduled_time: string;
+    location_name: string;
+    location_lat: number;
+    location_lng: number;
     notes: string;
+    status: string;
+    cancellation_reason?: string;
+    created_at: string;
+    seller_first_name: string;
+    seller_last_name: string;
+    seller_email: string;
+    buyer_first_name: string;
+    buyer_last_name: string;
+    buyer_email: string;
+    item_title: string;
+    item_price: number;
+    item_images: string[];
 }
 
 const MeetupSchedulerPage = () => {
     const navigate = useNavigate();
     const [user, setUser] = useState<any>(null);
-    const [showNewMeetupModal, setShowNewMeetupModal] = useState(false);
-    const [activeTab, setActiveTab] = useState<'upcoming' | 'completed'>('upcoming');
-    const [newMeetup, setNewMeetup] = useState({
-        title: '',
-        buyer: '',
-        item: '',
-        date: '',
-        time: '',
-        location: '',
-        notes: ''
-    });
-
-    // Mock meetups - replace with real data from backend
-    const [meetups, setMeetups] = useState<Meetup[]>([
-        {
-            id: 1,
-            title: 'Calculus Textbook Exchange',
-            buyer: 'John Doe',
-            seller: 'Jane Smith',
-            item: 'Calculus 2 Textbook',
-            date: '2024-12-15',
-            time: '14:00',
-            location: 'Library - 2nd Floor',
-            status: 'upcoming',
-            notes: 'Bring exact change ₱800'
-        },
-        {
-            id: 2,
-            title: 'Laptop Sale',
-            buyer: 'Mike Johnson',
-            seller: 'Sarah Lee',
-            item: 'Gaming Laptop',
-            date: '2024-12-16',
-            time: '10:30',
-            location: 'Cafeteria',
-            status: 'upcoming',
-            notes: 'Will test the laptop before purchase'
-        },
-        {
-            id: 3,
-            title: 'Uniform Purchase',
-            buyer: 'Alex Chen',
-            seller: 'Emma Wilson',
-            item: 'Women\'s Uniform Set',
-            date: '2024-12-10',
-            time: '15:00',
-            location: 'Main Gate',
-            status: 'completed',
-            notes: 'Transaction completed successfully'
-        }
-    ]);
+    const [meetups, setMeetups] = useState<Meetup[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState<string>('all');
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [selectedMeetup, setSelectedMeetup] = useState<Meetup | null>(null);
+    const [showDetailModal, setShowDetailModal] = useState(false);
 
     useEffect(() => {
         const userData = localStorage.getItem('user');
@@ -82,85 +52,94 @@ const MeetupSchedulerPage = () => {
         } catch (error) {
             navigate('/login');
         }
-
-        // Check for upcoming meetups (simulate notification check)
-        checkUpcomingMeetups();
     }, [navigate]);
 
-    const checkUpcomingMeetups = () => {
-        const now = new Date();
-        const upcomingMeetups = meetups.filter(meetup => {
-            if (meetup.status !== 'upcoming') return false;
+    useEffect(() => {
+        if (user) {
+            fetchMeetups();
+        }
+    }, [user]);
 
-            const meetupDateTime = new Date(`${meetup.date}T${meetup.time}`);
-            const timeDiff = meetupDateTime.getTime() - now.getTime();
-            const hoursDiff = timeDiff / (1000 * 60 * 60);
+    const fetchMeetups = async () => {
+        setIsLoading(true);
+        try {
+            const token = localStorage.getItem('sb-access-token') || localStorage.getItem('access_token');
+            const response = await fetch('http://localhost:5000/api/meetup/my-meetups', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
 
-            // Notify if meetup is within 24 hours
-            return hoursDiff > 0 && hoursDiff <= 24;
+            const result = await response.json();
+            if (result.success && result.data) {
+                setMeetups(result.data);
+            }
+        } catch (error) {
+            console.error('Error fetching meetups:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'pending':
+                return 'bg-yellow-500/20 border-yellow-500/40 text-yellow-400';
+            case 'confirmed':
+                return 'bg-blue-500/20 border-blue-500/40 text-blue-400';
+            case 'completed':
+                return 'bg-green-500/20 border-green-500/40 text-green-400';
+            case 'cancelled_by_seller':
+            case 'cancelled_by_buyer':
+                return 'bg-red-500/20 border-red-500/40 text-red-400';
+            default:
+                return 'bg-gray-500/20 border-gray-500/40 text-gray-400';
+        }
+    };
+
+    const getStatusLabel = (status: string) => {
+        switch (status) {
+            case 'pending':
+                return 'Pending';
+            case 'confirmed':
+                return 'Confirmed';
+            case 'completed':
+                return 'Completed';
+            case 'cancelled_by_seller':
+                return 'Cancelled by Seller';
+            case 'cancelled_by_buyer':
+                return 'Cancelled by Buyer';
+            default:
+                return status;
+        }
+    };
+
+    const filteredMeetups = meetups.filter(meetup => {
+        if (activeTab === 'all') return true;
+        if (activeTab === 'pending') return meetup.status === 'pending';
+        if (activeTab === 'confirmed') return meetup.status === 'confirmed';
+        if (activeTab === 'completed') return meetup.status === 'completed';
+        if (activeTab === 'cancelled') return meetup.status.includes('cancelled');
+        return true;
+    });
+
+    const formatDate = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
         });
-
-        if (upcomingMeetups.length > 0) {
-            console.log('You have upcoming meetups within 24 hours!', upcomingMeetups);
-            // In production, this would trigger actual notifications
-        }
     };
 
-    const handleCreateMeetup = () => {
-        if (!newMeetup.title.trim() || !newMeetup.buyer.trim() || !newMeetup.item.trim() ||
-            !newMeetup.date || !newMeetup.time || !newMeetup.location.trim()) {
-            alert('Please fill in all required fields');
-            return;
-        }
-
-        const meetup: Meetup = {
-            id: meetups.length + 1,
-            title: newMeetup.title,
-            buyer: newMeetup.buyer,
-            seller: `${user.first_name} ${user.last_name}`,
-            item: newMeetup.item,
-            date: newMeetup.date,
-            time: newMeetup.time,
-            location: newMeetup.location,
-            status: 'upcoming',
-            notes: newMeetup.notes
-        };
-
-        setMeetups([meetup, ...meetups]);
-        setNewMeetup({ title: '', buyer: '', item: '', date: '', time: '', location: '', notes: '' });
-        setShowNewMeetupModal(false);
+    const formatTime = (timeString: string) => {
+        return new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        });
     };
 
-    const handleCompleteMeetup = (id: number) => {
-        setMeetups(meetups.map(meetup =>
-            meetup.id === id ? { ...meetup, status: 'completed' as const } : meetup
-        ));
-    };
-
-    const handleCancelMeetup = (id: number) => {
-        setMeetups(meetups.map(meetup =>
-            meetup.id === id ? { ...meetup, status: 'cancelled' as const } : meetup
-        ));
-    };
-
-    const getTimeUntilMeetup = (date: string, time: string) => {
-        const now = new Date();
-        const meetupDateTime = new Date(`${date}T${time}`);
-        const timeDiff = meetupDateTime.getTime() - now.getTime();
-        const hoursDiff = Math.floor(timeDiff / (1000 * 60 * 60));
-        const daysDiff = Math.floor(hoursDiff / 24);
-
-        if (timeDiff < 0) return 'Past due';
-        if (daysDiff > 0) return `In ${daysDiff} day${daysDiff > 1 ? 's' : ''}`;
-        if (hoursDiff > 0) return `In ${hoursDiff} hour${hoursDiff > 1 ? 's' : ''}`;
-        return 'Soon!';
-    };
-
-    const filteredMeetups = meetups.filter(meetup =>
-        activeTab === 'upcoming' ? meetup.status === 'upcoming' : meetup.status === 'completed'
-    );
-
-    if (!user) {
+    if (!user || isLoading) {
         return (
             <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
@@ -197,40 +176,17 @@ const MeetupSchedulerPage = () => {
 
             {/* Main Content */}
             <div className="relative pt-24 pb-12 px-4">
-                <div className="max-w-6xl mx-auto">
+                <div className="max-w-7xl mx-auto">
                     {/* Header */}
-                    <div className="mb-8">
-                        <h1 className="text-4xl font-bold mb-2">
-                            <span className="bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">Meetup Scheduler</span>
-                        </h1>
-                        <p className="text-gray-400">Schedule and manage your meetups with buyers and sellers</p>
-                    </div>
-
-                    {/* Tabs and Create Button */}
-                    <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <div className="flex space-x-2">
-                            <button
-                                onClick={() => setActiveTab('upcoming')}
-                                className={`px-6 py-2 rounded-lg transition-all ${activeTab === 'upcoming'
-                                    ? 'bg-gradient-to-r from-blue-600 to-emerald-600 text-white'
-                                    : 'bg-slate-900/50 text-gray-400 hover:bg-slate-800/50'
-                                    }`}
-                            >
-                                Upcoming
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('completed')}
-                                className={`px-6 py-2 rounded-lg transition-all ${activeTab === 'completed'
-                                    ? 'bg-gradient-to-r from-blue-600 to-emerald-600 text-white'
-                                    : 'bg-slate-900/50 text-gray-400 hover:bg-slate-800/50'
-                                    }`}
-                            >
-                                Completed
-                            </button>
+                    <div className="mb-8 flex items-center justify-between">
+                        <div>
+                            <h1 className="text-4xl font-bold mb-2">
+                                <span className="bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">Meetup Scheduler</span>
+                            </h1>
+                            <p className="text-gray-400">Coordinate safe meetups with buyers and sellers</p>
                         </div>
-
                         <button
-                            onClick={() => setShowNewMeetupModal(true)}
+                            onClick={() => setShowCreateModal(true)}
                             className="px-6 py-3 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-lg hover:shadow-lg hover:shadow-blue-500/50 transition-all flex items-center space-x-2"
                         >
                             <Plus className="w-5 h-5" />
@@ -238,223 +194,135 @@ const MeetupSchedulerPage = () => {
                         </button>
                     </div>
 
+                    {/* Tabs */}
+                    <div className="mb-6 flex items-center space-x-2 overflow-x-auto pb-2">
+                        {[
+                            { id: 'all', label: 'All', count: meetups.length },
+                            { id: 'pending', label: 'Pending', count: meetups.filter(m => m.status === 'pending').length },
+                            { id: 'confirmed', label: 'Confirmed', count: meetups.filter(m => m.status === 'confirmed').length },
+                            { id: 'completed', label: 'Completed', count: meetups.filter(m => m.status === 'completed').length },
+                            { id: 'cancelled', label: 'Cancelled', count: meetups.filter(m => m.status.includes('cancelled')).length }
+                        ].map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${activeTab === tab.id
+                                    ? 'bg-gradient-to-r from-blue-600 to-emerald-600 text-white'
+                                    : 'bg-slate-800/50 text-gray-400 hover:bg-slate-800'
+                                    }`}
+                            >
+                                {tab.label} ({tab.count})
+                            </button>
+                        ))}
+                    </div>
+
                     {/* Meetups List */}
                     <div className="space-y-4">
-                        {filteredMeetups.map((meetup) => (
-                            <div
-                                key={meetup.id}
-                                className="bg-slate-900/50 backdrop-blur-xl border border-blue-500/20 rounded-2xl p-6 hover:border-blue-500/50 transition-all"
-                            >
-                                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-                                    {/* Meetup Info */}
-                                    <div className="flex-1">
+                        {filteredMeetups.length === 0 ? (
+                            <div className="text-center py-20">
+                                <Calendar className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                                <h3 className="text-xl font-semibold mb-2">No meetups found</h3>
+                                <p className="text-gray-400 mb-6">
+                                    {activeTab === 'all'
+                                        ? 'Schedule your first meetup to get started!'
+                                        : `No ${activeTab} meetups at the moment.`
+                                    }
+                                </p>
+                                {activeTab === 'all' && (
+                                    <button
+                                        onClick={() => setShowCreateModal(true)}
+                                        className="px-6 py-3 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-lg hover:shadow-lg transition-all"
+                                    >
+                                        Schedule Meetup
+                                    </button>
+                                )}
+                            </div>
+                        ) : (
+                            filteredMeetups.map(meetup => {
+                                const isSeller = meetup.seller_id === user.id;
+                                const otherPerson = isSeller
+                                    ? `${meetup.buyer_first_name} ${meetup.buyer_last_name}`
+                                    : `${meetup.seller_first_name} ${meetup.seller_last_name}`;
+
+                                return (
+                                    <div
+                                        key={meetup.id}
+                                        onClick={() => {
+                                            setSelectedMeetup(meetup);
+                                            setShowDetailModal(true);
+                                        }}
+                                        className="bg-slate-900/50 backdrop-blur-xl border border-blue-500/20 rounded-2xl p-6 hover:border-blue-500/50 transition-all cursor-pointer"
+                                    >
                                         <div className="flex items-start justify-between mb-4">
-                                            <div>
-                                                <h3 className="text-xl font-bold mb-2">{meetup.title}</h3>
-                                                <p className="text-gray-400 mb-2">Item: {meetup.item}</p>
+                                            <div className="flex-1">
+                                                <div className="flex items-center space-x-3 mb-2">
+                                                    <h3 className="text-xl font-bold">{meetup.title || meetup.item_title}</h3>
+                                                    <span className={`px-3 py-1 rounded-lg text-xs font-semibold border ${getStatusColor(meetup.status)}`}>
+                                                        {getStatusLabel(meetup.status)}
+                                                    </span>
+                                                </div>
+                                                <p className="text-gray-400 text-sm">
+                                                    {isSeller ? 'Buyer' : 'Seller'}: {otherPerson}
+                                                </p>
                                             </div>
-                                            {meetup.status === 'upcoming' && (
-                                                <span className="px-3 py-1 bg-emerald-500/20 border border-emerald-500/30 rounded-full text-sm text-emerald-400">
-                                                    {getTimeUntilMeetup(meetup.date, meetup.time)}
-                                                </span>
-                                            )}
+                                            <div className="text-right">
+                                                <div className="text-2xl font-bold text-emerald-400">₱{meetup.item_price}</div>
+                                            </div>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                             <div className="flex items-center space-x-2 text-gray-300">
-                                                <User className="w-5 h-5 text-blue-400" />
-                                                <div>
-                                                    <p className="text-xs text-gray-500">Buyer</p>
-                                                    <p className="font-medium">{meetup.buyer}</p>
-                                                </div>
+                                                <Calendar className="w-4 h-4 text-blue-400" />
+                                                <span className="text-sm">{formatDate(meetup.scheduled_date)}</span>
                                             </div>
-
                                             <div className="flex items-center space-x-2 text-gray-300">
-                                                <User className="w-5 h-5 text-emerald-400" />
-                                                <div>
-                                                    <p className="text-xs text-gray-500">Seller</p>
-                                                    <p className="font-medium">{meetup.seller}</p>
-                                                </div>
+                                                <Clock className="w-4 h-4 text-emerald-400" />
+                                                <span className="text-sm">{formatTime(meetup.scheduled_time)}</span>
                                             </div>
-
                                             <div className="flex items-center space-x-2 text-gray-300">
-                                                <Calendar className="w-5 h-5 text-purple-400" />
-                                                <div>
-                                                    <p className="text-xs text-gray-500">Date</p>
-                                                    <p className="font-medium">{new Date(meetup.date).toLocaleDateString()}</p>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center space-x-2 text-gray-300">
-                                                <Clock className="w-5 h-5 text-pink-400" />
-                                                <div>
-                                                    <p className="text-xs text-gray-500">Time</p>
-                                                    <p className="font-medium">{meetup.time}</p>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center space-x-2 text-gray-300 md:col-span-2">
-                                                <MapPin className="w-5 h-5 text-red-400" />
-                                                <div>
-                                                    <p className="text-xs text-gray-500">Location</p>
-                                                    <p className="font-medium">{meetup.location}</p>
-                                                </div>
+                                                <MapPin className="w-4 h-4 text-pink-400" />
+                                                <span className="text-sm truncate">{meetup.location_name}</span>
                                             </div>
                                         </div>
 
                                         {meetup.notes && (
-                                            <div className="flex items-start space-x-2 text-gray-300 bg-slate-800/50 rounded-lg p-3">
-                                                <AlertCircle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
-                                                <div>
-                                                    <p className="text-xs text-gray-500 mb-1">Notes</p>
-                                                    <p className="text-sm">{meetup.notes}</p>
-                                                </div>
+                                            <div className="mt-4 pt-4 border-t border-slate-700">
+                                                <p className="text-sm text-gray-400">{meetup.notes}</p>
                                             </div>
                                         )}
                                     </div>
-
-                                    {/* Actions */}
-                                    {meetup.status === 'upcoming' && (
-                                        <div className="flex lg:flex-col gap-2">
-                                            <button
-                                                onClick={() => handleCompleteMeetup(meetup.id)}
-                                                className="flex-1 lg:flex-none px-4 py-2 bg-emerald-500/20 border border-emerald-500/30 rounded-lg hover:bg-emerald-500/30 transition-all text-emerald-400"
-                                            >
-                                                Complete
-                                            </button>
-                                            <button
-                                                onClick={() => handleCancelMeetup(meetup.id)}
-                                                className="flex-1 lg:flex-none px-4 py-2 bg-red-500/20 border border-red-500/30 rounded-lg hover:bg-red-500/30 transition-all text-red-400"
-                                            >
-                                                Cancel
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
+                                );
+                            })
+                        )}
                     </div>
-
-                    {/* No Meetups */}
-                    {filteredMeetups.length === 0 && (
-                        <div className="text-center py-16">
-                            <Calendar className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                            <h3 className="text-xl font-semibold mb-2">
-                                No {activeTab} meetups
-                            </h3>
-                            <p className="text-gray-400">
-                                {activeTab === 'upcoming'
-                                    ? 'Schedule a meetup to get started!'
-                                    : 'Completed meetups will appear here'}
-                            </p>
-                        </div>
-                    )}
                 </div>
             </div>
 
-            {/* New Meetup Modal */}
-            {showNewMeetupModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="w-full max-w-2xl bg-slate-900/95 backdrop-blur-xl border border-blue-500/30 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
-                        <div className="p-6 border-b border-blue-500/20">
-                            <h3 className="text-2xl font-bold">Schedule New Meetup</h3>
-                        </div>
+            {/* Create Meetup Modal */}
+            {showCreateModal && (
+                <CreateMeetupModal
+                    user={user}
+                    onClose={() => setShowCreateModal(false)}
+                    onSuccess={() => {
+                        setShowCreateModal(false);
+                        fetchMeetups();
+                    }}
+                />
+            )}
 
-                        <div className="p-6 space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Meetup Title *</label>
-                                <input
-                                    type="text"
-                                    placeholder="e.g., Textbook Exchange"
-                                    value={newMeetup.title}
-                                    onChange={(e) => setNewMeetup({ ...newMeetup, title: e.target.value })}
-                                    className="w-full px-4 py-3 bg-slate-800/50 border border-blue-500/20 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-white placeholder-gray-500"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Buyer Name *</label>
-                                <input
-                                    type="text"
-                                    placeholder="Who are you meeting?"
-                                    value={newMeetup.buyer}
-                                    onChange={(e) => setNewMeetup({ ...newMeetup, buyer: e.target.value })}
-                                    className="w-full px-4 py-3 bg-slate-800/50 border border-blue-500/20 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-white placeholder-gray-500"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Item *</label>
-                                <input
-                                    type="text"
-                                    placeholder="What item is being exchanged?"
-                                    value={newMeetup.item}
-                                    onChange={(e) => setNewMeetup({ ...newMeetup, item: e.target.value })}
-                                    className="w-full px-4 py-3 bg-slate-800/50 border border-blue-500/20 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-white placeholder-gray-500"
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-300 mb-2">Date *</label>
-                                    <input
-                                        type="date"
-                                        value={newMeetup.date}
-                                        onChange={(e) => setNewMeetup({ ...newMeetup, date: e.target.value })}
-                                        className="w-full px-4 py-3 bg-slate-800/50 border border-blue-500/20 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-white"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-300 mb-2">Time *</label>
-                                    <input
-                                        type="time"
-                                        value={newMeetup.time}
-                                        onChange={(e) => setNewMeetup({ ...newMeetup, time: e.target.value })}
-                                        className="w-full px-4 py-3 bg-slate-800/50 border border-blue-500/20 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-white"
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Location *</label>
-                                <input
-                                    type="text"
-                                    placeholder="e.g., Library - 2nd Floor"
-                                    value={newMeetup.location}
-                                    onChange={(e) => setNewMeetup({ ...newMeetup, location: e.target.value })}
-                                    className="w-full px-4 py-3 bg-slate-800/50 border border-blue-500/20 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-white placeholder-gray-500"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Notes (Optional)</label>
-                                <textarea
-                                    placeholder="Any additional information..."
-                                    value={newMeetup.notes}
-                                    onChange={(e) => setNewMeetup({ ...newMeetup, notes: e.target.value })}
-                                    rows={3}
-                                    className="w-full px-4 py-3 bg-slate-800/50 border border-blue-500/20 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-white placeholder-gray-500 resize-none"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="p-6 border-t border-blue-500/20 flex space-x-3">
-                            <button
-                                onClick={() => setShowNewMeetupModal(false)}
-                                className="flex-1 px-4 py-3 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-all"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleCreateMeetup}
-                                className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-lg hover:shadow-lg hover:shadow-blue-500/50 transition-all font-medium"
-                            >
-                                Schedule Meetup
-                            </button>
-                        </div>
-                    </div>
-                </div>
+            {/* Meetup Detail Modal */}
+            {showDetailModal && selectedMeetup && (
+                <MeetupDetailModal
+                    meetup={selectedMeetup}
+                    user={user}
+                    onClose={() => {
+                        setShowDetailModal(false);
+                        setSelectedMeetup(null);
+                    }}
+                    onUpdate={() => {
+                        fetchMeetups();
+                    }}
+                />
             )}
         </div>
     );

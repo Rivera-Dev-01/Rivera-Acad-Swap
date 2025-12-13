@@ -30,7 +30,8 @@ def register():
             current_year=data.get('currentYear'),
             block_section=data.get('blockSection'),
             course=data.get('course'),
-            phone_number=data.get('phoneNumber')
+            phone_number=data.get('phoneNumber'),
+            referral_code=data.get('referralCode')
         )
         
         return jsonify(response), status

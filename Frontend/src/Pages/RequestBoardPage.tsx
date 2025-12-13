@@ -10,6 +10,8 @@ interface Reply {
     content?: string;
     message?: string;
     created_at: string;
+    user_first_name?: string;
+    user_last_name?: string;
 }
 
 interface Post {
@@ -27,13 +29,15 @@ interface Post {
     reply_count?: number;
     user_liked?: boolean;
     replies?: Reply[];
+    user_first_name?: string;
+    user_last_name?: string;
 }
 
 const RequestBoardPage = () => {
     const navigate = useNavigate();
     const [user, setUser] = useState<any>(null);
     const [showNewPostModal, setShowNewPostModal] = useState(false);
-    const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+
     const [searchQuery, setSearchQuery] = useState('');
     const [newPost, setNewPost] = useState({ title: '', description: '', category: 'Textbooks', budget: '' });
     const [replyContent, setReplyContent] = useState<{ [key: string]: string }>({});
@@ -414,7 +418,7 @@ const RequestBoardPage = () => {
                                 <div className="flex items-start justify-between mb-4">
                                     <div className="flex-1">
                                         <div className="flex items-center space-x-2 mb-2">
-                                            <span className="font-semibold">User</span>
+                                            <span className="font-semibold">{post.user_first_name} {post.user_last_name}</span>
                                             <span className="text-gray-500 text-sm">•</span>
                                             <span className="text-gray-500 text-sm">{formatTimeAgo(post.created_at)}</span>
                                             <span className="px-2 py-1 bg-blue-500/20 border border-blue-500/30 rounded text-xs">
@@ -464,7 +468,7 @@ const RequestBoardPage = () => {
 
                                 {/* Replies Section */}
                                 {expandedPosts[post.id] && (
-                                    <div className="mt-4 pt-4 border-t border-slate-700">
+                                    <div className="mt-4 pt-4 border-t border-slate-700 animate-slideDown">
                                         {/* Reply Input */}
                                         <div className="flex gap-2 mb-4">
                                             <input
@@ -495,7 +499,7 @@ const RequestBoardPage = () => {
                                                         <div className="flex items-start justify-between">
                                                             <div className="flex-1">
                                                                 <div className="flex items-center space-x-2 mb-1">
-                                                                    <span className="font-semibold text-sm">User</span>
+                                                                    <span className="font-semibold text-sm">{reply.user_first_name} {reply.user_last_name}</span>
                                                                     <span className="text-gray-500 text-xs">•</span>
                                                                     <span className="text-gray-500 text-xs">{formatTimeAgo(reply.created_at)}</span>
                                                                 </div>

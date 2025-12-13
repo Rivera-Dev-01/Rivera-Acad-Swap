@@ -8,9 +8,23 @@ class BoardService:
             # Fetch requests
             requests = supabase.table('requests').select('*').eq('status', 'active').order('created_at', desc=True).limit(100).execute()
             
-            # Add reply count, like count, and user_liked status to each request
+            # Add reply count, like count, user_liked status, and user info to each request
             if requests.data:
                 for req in requests.data:
+                    # Fetch user data for the request poster
+                    try:
+                        user_data = supabase.table('users').select('first_name, last_name').eq('id', req['user_id']).single().execute()
+                        if user_data.data:
+                            req['user_first_name'] = user_data.data.get('first_name', 'Unknown')
+                            req['user_last_name'] = user_data.data.get('last_name', 'User')
+                        else:
+                            req['user_first_name'] = 'Unknown'
+                            req['user_last_name'] = 'User'
+                    except Exception as e:
+                        print(f"Error fetching user data for user {req['user_id']}: {e}")
+                        req['user_first_name'] = 'Unknown'
+                        req['user_last_name'] = 'User'
+                    
                     # Count replies for this request
                     reply_count = supabase.table('request_replies').select('id', count='exact').eq('request_id', req['id']).execute()
                     req['reply_count'] = reply_count.count if reply_count.count else 0
@@ -91,6 +105,23 @@ class BoardService:
         supabase = get_supabase()
         try:
             replies = supabase.table('request_replies').select('*').eq('request_id', request_id).order('created_at', desc=False).execute()
+            
+            # Fetch user data for each reply
+            if replies.data:
+                for reply in replies.data:
+                    try:
+                        user_data = supabase.table('users').select('first_name, last_name').eq('id', reply['user_id']).single().execute()
+                        if user_data.data:
+                            reply['user_first_name'] = user_data.data.get('first_name', 'Unknown')
+                            reply['user_last_name'] = user_data.data.get('last_name', 'User')
+                        else:
+                            reply['user_first_name'] = 'Unknown'
+                            reply['user_last_name'] = 'User'
+                    except Exception as e:
+                        print(f"Error fetching user data for reply user {reply['user_id']}: {e}")
+                        reply['user_first_name'] = 'Unknown'
+                        reply['user_last_name'] = 'User'
+            
             return {"success": True, "data": replies.data}, 200
         except Exception as e:
             print(f"Get Replies Error: {e}")

@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ShoppingBag, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { ShoppingBag, ArrowRight, Eye, EyeOff, Gift } from 'lucide-react';
 
 const RegisterPage: React.FC = () => {
+    const [searchParams] = useSearchParams();
+    const [referralCode, setReferralCode] = useState<string | null>(null);
+    const [referralValid, setReferralValid] = useState<boolean | null>(null);
+
     const [formData, setFormData] = useState({
         firstName: '',
         lastName: '',
@@ -14,6 +18,24 @@ const RegisterPage: React.FC = () => {
         password: '',
         confirmPassword: ''
     });
+
+    // Check for referral code in URL
+    useEffect(() => {
+        const refCode = searchParams.get('ref');
+        if (refCode) {
+            setReferralCode(refCode);
+            // Validate referral code
+            fetch(`http://localhost:5000/api/referral/validate/${refCode}`)
+                .then(res => res.json())
+                .then(data => {
+                    setReferralValid(data.valid);
+                })
+                .catch(err => {
+                    console.error('Error validating referral code:', err);
+                    setReferralValid(false);
+                });
+        }
+    }, [searchParams]);
 
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [showPassword, setShowPassword] = useState(false);
@@ -121,27 +143,37 @@ const RegisterPage: React.FC = () => {
 
     const handleRegistration = async () => {
         try {
+            const requestBody: any = {
+                schoolEmail: formData.schoolEmail,
+                password: formData.password,
+                firstName: formData.firstName,
+                lastName: formData.lastName,
+                currentYear: formData.currentYear,
+                blockSection: formData.blockSection,
+                course: formData.course,
+                phoneNumber: formData.phoneNumber
+            };
+
+            // Add referral code if valid
+            if (referralCode && referralValid) {
+                requestBody.referralCode = referralCode;
+            }
+
             const response = await fetch('http://localhost:5000/api/auth/register', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    schoolEmail: formData.schoolEmail,
-                    password: formData.password,
-                    firstName: formData.firstName,
-                    lastName: formData.lastName,
-                    currentYear: formData.currentYear,
-                    blockSection: formData.blockSection,
-                    course: formData.course,
-                    phoneNumber: formData.phoneNumber
-                })
+                body: JSON.stringify(requestBody)
             });
 
             const data = await response.json();
 
             if (data.success) {
-                alert('Registration successful! You can now login with your credentials.');
+                const message = referralCode && referralValid
+                    ? 'Registration successful! You earned +10 reputation from the referral. Your friend earned +15 reputation. You can now login.'
+                    : 'Registration successful! You can now login with your credentials.';
+                alert(message);
             } else {
                 alert('Registration failed: ' + data.message);
             }
@@ -193,6 +225,36 @@ const RegisterPage: React.FC = () => {
                                 Student <span className="bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">Registration</span>
                             </h1>
                             <p className="text-gray-400">Create your account with your university email</p>
+
+                            {referralCode && (
+                                <div className={`mt-4 p-3 rounded-lg border ${referralValid === true
+                                    ? 'bg-emerald-500/10 border-emerald-500/30'
+                                    : referralValid === false
+                                        ? 'bg-red-500/10 border-red-500/30'
+                                        : 'bg-blue-500/10 border-blue-500/30'
+                                    }`}>
+                                    <div className="flex items-center justify-center space-x-2">
+                                        <Gift className={`w-5 h-5 ${referralValid === true
+                                            ? 'text-emerald-400'
+                                            : referralValid === false
+                                                ? 'text-red-400'
+                                                : 'text-blue-400'
+                                            }`} />
+                                        <span className={`text-sm font-medium ${referralValid === true
+                                            ? 'text-emerald-400'
+                                            : referralValid === false
+                                                ? 'text-red-400'
+                                                : 'text-blue-400'
+                                            }`}>
+                                            {referralValid === true
+                                                ? `Valid referral code! You'll get +10 reputation bonus`
+                                                : referralValid === false
+                                                    ? 'Invalid referral code'
+                                                    : 'Validating referral code...'}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <div className="space-y-6">

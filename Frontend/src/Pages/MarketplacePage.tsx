@@ -1,22 +1,21 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Filter, ChevronDown, ShoppingBag, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Search, Filter, ShoppingBag, X } from 'lucide-react';
 import NavigationMenu from '../components/NavigationMenu';
 
 const MarketplacePage = () => {
     const navigate = useNavigate();
-    const scrollContainerRef = useRef<HTMLDivElement>(null);
+
     const [user, setUser] = useState<any>(null);
     const [activeCategory, setActiveCategory] = useState<string>('All');
     const [activeSubCategory, setActiveSubCategory] = useState<string>('');
-    const [showCategoryDropdown, setShowCategoryDropdown] = useState<string>('');
     const [searchQuery, setSearchQuery] = useState('');
-    const [showLeftArrow, setShowLeftArrow] = useState(false);
-    const [showRightArrow, setShowRightArrow] = useState(true);
     const [showFilterModal, setShowFilterModal] = useState(false);
     const [items, setItems] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [selectedItem, setSelectedItem] = useState<any | null>(null);
+    const [showItemModal, setShowItemModal] = useState(false);
 
     // Category structure
     const categories: Record<string, string[]> = {
@@ -73,44 +72,50 @@ const MarketplacePage = () => {
     const handleCategoryClick = (category: string) => {
         setActiveCategory(category);
         setActiveSubCategory('');
-        setShowCategoryDropdown('');
     };
 
     const handleSubCategoryClick = (subCategory: string) => {
         setActiveSubCategory(subCategory);
-        setShowCategoryDropdown('');
     };
 
-    const scroll = (direction: 'left' | 'right') => {
-        if (scrollContainerRef.current) {
-            const scrollAmount = 300;
-            const newScrollLeft = direction === 'left'
-                ? scrollContainerRef.current.scrollLeft - scrollAmount
-                : scrollContainerRef.current.scrollLeft + scrollAmount;
 
-            scrollContainerRef.current.scrollTo({
-                left: newScrollLeft,
-                behavior: 'smooth'
+
+    const handleMarkAsSold = async () => {
+        if (!selectedItem) return;
+
+        const confirmSold = window.confirm(`Are you sure you want to mark "${selectedItem.title}" as sold? This will remove it from the marketplace.`);
+        if (!confirmSold) return;
+
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch(`http://localhost:5000/items/${selectedItem.id}/mark-sold`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
             });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('Item marked as sold successfully!');
+                setShowItemModal(false);
+                setSelectedItem(null);
+                // Refresh the items list
+                const refreshResponse = await fetch('http://localhost:5000/api/marketplace/items');
+                const refreshResult = await refreshResponse.json();
+                if (refreshResult.success && refreshResult.data) {
+                    setItems(refreshResult.data);
+                }
+            } else {
+                alert(`Failed to mark item as sold: ${result.message}`);
+            }
+        } catch (error) {
+            console.error('Error marking item as sold:', error);
+            alert('An error occurred while marking the item as sold');
         }
     };
-
-    const handleScroll = () => {
-        if (scrollContainerRef.current) {
-            const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-            setShowLeftArrow(scrollLeft > 10);
-            setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10);
-        }
-    };
-
-    useEffect(() => {
-        const container = scrollContainerRef.current;
-        if (container) {
-            container.addEventListener('scroll', handleScroll);
-            handleScroll(); // Initial check
-            return () => container.removeEventListener('scroll', handleScroll);
-        }
-    }, []);
 
     const filteredItems = items.filter(item => {
         const matchesCategory = activeCategory === 'All' || item.category === activeCategory;
@@ -410,6 +415,10 @@ const MarketplacePage = () => {
                         {filteredItems.map((item) => (
                             <div
                                 key={item.id}
+                                onClick={() => {
+                                    setSelectedItem(item);
+                                    setShowItemModal(true);
+                                }}
                                 className="group bg-slate-900/50 backdrop-blur-xl border-2 border-slate-800 rounded-2xl overflow-hidden hover:border-blue-500 transition-all hover:scale-[1.02] hover:shadow-2xl hover:shadow-blue-500/20 cursor-pointer"
                             >
                                 {/* Image */}
@@ -442,9 +451,9 @@ const MarketplacePage = () => {
                                     <div className="flex items-center justify-between pt-3 border-t border-slate-800">
                                         <div className="flex items-center gap-2">
                                             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center text-sm font-bold">
-                                                S
+                                                {item.seller_first_name?.[0] || 'S'}
                                             </div>
-                                            <span className="text-sm text-gray-400 font-medium">Seller</span>
+                                            <span className="text-sm text-gray-400 font-medium">{item.seller_first_name} {item.seller_last_name}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -477,6 +486,143 @@ const MarketplacePage = () => {
                     )}
                 </div>
             </div>
+
+            {/* Item Detail Modal */}
+            {showItemModal && selectedItem && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 animate-fadeIn"
+                    onClick={() => setShowItemModal(false)}
+                >
+                    <div
+                        className="w-full max-w-4xl max-h-[90vh] bg-slate-900 rounded-3xl border-2 border-slate-700 shadow-2xl overflow-hidden animate-fadeIn"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between px-8 py-6 border-b border-slate-700 bg-slate-900">
+                            <h2 className="text-2xl font-bold">Item Details</h2>
+                            <button
+                                onClick={() => setShowItemModal(false)}
+                                className="w-12 h-12 flex items-center justify-center rounded-xl hover:bg-slate-800 transition-colors"
+                            >
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        {/* Modal Content */}
+                        <div className="overflow-y-auto max-h-[calc(90vh-140px)] p-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                {/* Image Section */}
+                                <div className="space-y-4">
+                                    <div className="relative w-full h-80 bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl overflow-hidden">
+                                        {selectedItem.images && selectedItem.images.length > 0 ? (
+                                            <img
+                                                src={selectedItem.images[0]}
+                                                alt={selectedItem.title}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center">
+                                                <ShoppingBag className="w-24 h-24 text-gray-700" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    {selectedItem.images && selectedItem.images.length > 1 && (
+                                        <div className="grid grid-cols-4 gap-2">
+                                            {selectedItem.images.slice(1, 5).map((img: string, idx: number) => (
+                                                <div key={idx} className="relative w-full h-20 bg-slate-800 rounded-lg overflow-hidden">
+                                                    <img src={img} alt={`${selectedItem.title} ${idx + 2}`} className="w-full h-full object-cover" />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Details Section */}
+                                <div className="space-y-6">
+                                    <div>
+                                        <h3 className="text-3xl font-bold mb-2">{selectedItem.title}</h3>
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <span className="px-3 py-1 bg-blue-500/20 border border-blue-500/30 rounded-lg text-sm">
+                                                {selectedItem.category}
+                                            </span>
+                                            {selectedItem.subcategory && (
+                                                <span className="px-3 py-1 bg-emerald-500/20 border border-emerald-500/30 rounded-lg text-sm">
+                                                    {selectedItem.subcategory}
+                                                </span>
+                                            )}
+                                            <span className="px-3 py-1 bg-slate-700 rounded-lg text-sm font-semibold">
+                                                {selectedItem.condition}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="py-4 border-y border-slate-700">
+                                        <div className="text-sm text-gray-400 mb-1">Price</div>
+                                        <div className="text-4xl font-bold bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">
+                                            ₱{selectedItem.price}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <div className="text-sm text-gray-400 mb-2">Description</div>
+                                        <p className="text-gray-300 leading-relaxed">{selectedItem.description || 'No description provided.'}</p>
+                                    </div>
+
+                                    {selectedItem.size && (
+                                        <div>
+                                            <div className="text-sm text-gray-400 mb-2">Size</div>
+                                            <p className="text-white font-medium">{selectedItem.size}</p>
+                                        </div>
+                                    )}
+
+                                    <div className="pt-4 border-t border-slate-700">
+                                        <div className="text-sm text-gray-400 mb-3">Seller</div>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center text-lg font-bold">
+                                                {selectedItem.seller_first_name?.[0] || 'S'}
+                                            </div>
+                                            <div>
+                                                <div className="font-semibold text-lg">{selectedItem.seller_first_name} {selectedItem.seller_last_name}</div>
+                                                <div className="text-sm text-gray-400">Listed {new Date(selectedItem.created_at).toLocaleDateString()}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="flex gap-4 px-8 py-6 border-t border-slate-700 bg-slate-900">
+                            <button
+                                onClick={() => setShowItemModal(false)}
+                                className="flex-1 px-6 py-4 bg-slate-800 hover:bg-slate-700 rounded-xl font-bold text-lg transition-colors border-2 border-slate-700"
+                            >
+                                Close
+                            </button>
+
+                            {/* Show Mark as Sold button only if user is the seller */}
+                            {selectedItem.seller_id === user?.id ? (
+                                <button
+                                    onClick={handleMarkAsSold}
+                                    className="flex-1 px-6 py-4 bg-gradient-to-r from-emerald-600 to-green-600 rounded-xl font-bold text-lg hover:shadow-lg transition-all"
+                                >
+                                    Mark as Sold
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() => {
+                                        // TODO: Add contact seller functionality
+                                        alert('Contact seller feature coming soon!');
+                                    }}
+                                    className="flex-1 px-6 py-4 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-xl font-bold text-lg hover:shadow-lg transition-all"
+                                >
+                                    Contact Seller
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
