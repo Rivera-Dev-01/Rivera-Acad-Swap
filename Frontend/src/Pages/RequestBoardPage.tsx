@@ -1,25 +1,32 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageSquare, ThumbsUp, Send, Plus, Search } from 'lucide-react';
+import { MessageSquare, ThumbsUp, Plus, Search, X, Trash2, Send } from 'lucide-react';
 import NavigationMenu from '../components/NavigationMenu';
 
 interface Reply {
-    id: number;
-    author: string;
-    content: string;
-    timestamp: string;
-    likes: number;
+    id: string;
+    request_id: string;
+    user_id: string;
+    content?: string;
+    message?: string;
+    created_at: string;
 }
 
 interface Post {
-    id: number;
-    author: string;
+    id: string;
+    user_id: string;
     title: string;
-    content: string;
-    timestamp: string;
-    likes: number;
-    replies: Reply[];
+    description: string;
     category: string;
+    subcategory?: string;
+    budget?: number;
+    status: string;
+    created_at: string;
+    updated_at: string;
+    like_count?: number;
+    reply_count?: number;
+    user_liked?: boolean;
+    replies?: Reply[];
 }
 
 const RequestBoardPage = () => {
@@ -28,65 +35,11 @@ const RequestBoardPage = () => {
     const [showNewPostModal, setShowNewPostModal] = useState(false);
     const [selectedPost, setSelectedPost] = useState<Post | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
-    const [newPost, setNewPost] = useState({ title: '', content: '', category: 'General' });
-    const [replyContent, setReplyContent] = useState('');
-
-    // Mock posts - replace with real data from backend
-    const [posts, setPosts] = useState<Post[]>([
-        {
-            id: 1,
-            author: 'John Doe',
-            title: 'Looking for Calculus 2 Textbook',
-            content: 'Hi! I need a Calculus 2 textbook for this semester. Preferably the 9th edition. Willing to pay up to ₱800. Please message me if you have one!',
-            timestamp: '2 hours ago',
-            likes: 12,
-            category: 'Books',
-            replies: [
-                {
-                    id: 1,
-                    author: 'Jane Smith',
-                    content: 'I have one! It\'s in good condition. DM me.',
-                    timestamp: '1 hour ago',
-                    likes: 3
-                },
-                {
-                    id: 2,
-                    author: 'Mike Johnson',
-                    content: 'Check the library, they might have extra copies for sale.',
-                    timestamp: '30 mins ago',
-                    likes: 1
-                }
-            ]
-        },
-        {
-            id: 2,
-            author: 'Sarah Lee',
-            title: 'Need: Gaming Mouse (Budget Friendly)',
-            content: 'Looking for a decent gaming mouse under ₱1000. RGB not necessary, just need good DPI and comfortable grip.',
-            timestamp: '5 hours ago',
-            likes: 8,
-            category: 'Electronics',
-            replies: []
-        },
-        {
-            id: 3,
-            author: 'Alex Chen',
-            title: 'WTB: Women\'s Uniform Size M',
-            content: 'Need a complete women\'s uniform set, size medium. Preferably gently used. Budget is ₱1500.',
-            timestamp: '1 day ago',
-            likes: 5,
-            category: 'Clothing',
-            replies: [
-                {
-                    id: 1,
-                    author: 'Emma Wilson',
-                    content: 'I have one! Worn only twice. Let me know if you\'re interested.',
-                    timestamp: '20 hours ago',
-                    likes: 2
-                }
-            ]
-        }
-    ]);
+    const [newPost, setNewPost] = useState({ title: '', description: '', category: 'Textbooks', budget: '' });
+    const [replyContent, setReplyContent] = useState<{ [key: string]: string }>({});
+    const [posts, setPosts] = useState<Post[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [expandedPosts, setExpandedPosts] = useState<{ [key: string]: boolean }>({});
 
     useEffect(() => {
         const userData = localStorage.getItem('user');
@@ -101,59 +54,289 @@ const RequestBoardPage = () => {
         }
     }, [navigate]);
 
-    const handleCreatePost = () => {
-        if (!newPost.title.trim() || !newPost.content.trim()) {
-            alert('Please fill in all fields');
+    // Fetch requests from backend
+    useEffect(() => {
+        const fetchRequests = async () => {
+            setIsLoading(true);
+
+            try {
+                console.log('Fetching requests from:', 'http://localhost:5000/api/board/request');
+
+                // Include auth token if available
+                const token = localStorage.getItem('sb-access-token') || localStorage.getItem('access_token');
+                const headers: HeadersInit = {};
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+
+                const response = await fetch('http://localhost:5000/api/board/request', { headers });
+                console.log('Response status:', response.status);
+
+                const result = await response.json();
+                console.log('Response data:', result);
+
+                if (result.success && result.data) {
+                    setPosts(result.data);
+                } else {
+                    console.error('Failed to load:', result.message);
+                    // Still stop loading even if no data
+                    setPosts([]);
+                }
+            } catch (err: any) {
+                console.error('Error fetching requests:', err);
+                // Stop loading on error
+                setPosts([]);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchRequests();
+    }, []);
+
+    const handleCreatePost = async () => {
+        if (!newPost.title.trim() || !newPost.description.trim()) {
+            alert('Please fill in title and description');
             return;
         }
 
-        const post: Post = {
-            id: posts.length + 1,
-            author: `${user.first_name} ${user.last_name}`,
-            title: newPost.title,
-            content: newPost.content,
-            timestamp: 'Just now',
-            likes: 0,
-            category: newPost.category,
-            replies: []
-        };
+        try {
+            const token = localStorage.getItem('sb-access-token') || localStorage.getItem('access_token');
 
-        setPosts([post, ...posts]);
-        setNewPost({ title: '', content: '', category: 'General' });
-        setShowNewPostModal(false);
+            const response = await fetch('http://localhost:5000/api/board/requests', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    title: newPost.title,
+                    description: newPost.description,
+                    category: newPost.category,
+                    budget: newPost.budget ? parseFloat(newPost.budget) : null
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('Request posted successfully!');
+                setShowNewPostModal(false);
+                setNewPost({ title: '', description: '', category: 'Textbooks', budget: '' });
+                window.location.reload();
+            } else {
+                alert(result.message || 'Failed to post request');
+            }
+        } catch (error: any) {
+            console.error('Error posting request:', error);
+            alert('Failed to post request');
+        }
     };
 
-    const handleReply = (postId: number) => {
-        if (!replyContent.trim()) return;
+    const handleDeletePost = async (postId: string) => {
+        if (!confirm('Are you sure you want to delete this request?')) {
+            return;
+        }
 
-        setPosts(posts.map(post => {
-            if (post.id === postId) {
-                return {
-                    ...post,
-                    replies: [
-                        ...post.replies,
-                        {
-                            id: post.replies.length + 1,
-                            author: `${user.first_name} ${user.last_name}`,
-                            content: replyContent,
-                            timestamp: 'Just now',
-                            likes: 0
-                        }
-                    ]
-                };
+        try {
+            const token = localStorage.getItem('sb-access-token') || localStorage.getItem('access_token');
+
+            const response = await fetch(`http://localhost:5000/api/board/requests/${postId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                setPosts(posts.filter(p => p.id !== postId));
+            } else {
+                alert(result.message || 'Failed to delete request');
             }
-            return post;
-        }));
+        } catch (error: any) {
+            console.error('Error deleting request:', error);
+            alert('Failed to delete request');
+        }
+    };
 
-        setReplyContent('');
+    const handleLikePost = async (postId: string) => {
+        try {
+            const token = localStorage.getItem('sb-access-token') || localStorage.getItem('access_token');
+
+            const response = await fetch(`http://localhost:5000/api/board/requests/${postId}/like`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Update local state
+                setPosts(posts.map(p => {
+                    if (p.id === postId) {
+                        return {
+                            ...p,
+                            like_count: result.data.like_count,
+                            user_liked: result.data.user_liked
+                        };
+                    }
+                    return p;
+                }));
+            }
+        } catch (error: any) {
+            console.error('Error liking post:', error);
+        }
+    };
+
+    const toggleReplies = async (postId: string) => {
+        const isExpanded = expandedPosts[postId];
+
+        if (!isExpanded) {
+            // Fetch replies when expanding
+            try {
+                const response = await fetch(`http://localhost:5000/api/board/requests/${postId}/replies`);
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    setPosts(posts.map(p => {
+                        if (p.id === postId) {
+                            return { ...p, replies: result.data, reply_count: result.data.length };
+                        }
+                        return p;
+                    }));
+                } else {
+                    // If backend not ready, just expand with empty replies
+                    setPosts(posts.map(p => {
+                        if (p.id === postId) {
+                            return { ...p, replies: [] };
+                        }
+                        return p;
+                    }));
+                }
+            } catch (error: any) {
+                console.error('Error fetching replies:', error);
+                // If backend not ready, just expand with empty replies
+                setPosts(posts.map(p => {
+                    if (p.id === postId) {
+                        return { ...p, replies: [] };
+                    }
+                    return p;
+                }));
+            }
+        }
+
+        setExpandedPosts({ ...expandedPosts, [postId]: !isExpanded });
+    };
+
+    const handleReply = async (postId: string) => {
+        const content = replyContent[postId];
+        if (!content || !content.trim()) {
+            alert('Please enter a reply');
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('sb-access-token') || localStorage.getItem('access_token');
+
+            console.log('Posting reply:', {
+                postId,
+                content,
+                endpoint: `http://localhost:5000/api/board/requests/${postId}/replies`
+            });
+
+            const response = await fetch(`http://localhost:5000/api/board/requests/${postId}/replies`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                // CHANGE HERE: Send both content and message to satisfy the database constraint
+                body: JSON.stringify({
+                    content: content,
+                    message: content
+                })
+            });
+
+            const result = await response.json();
+            console.log('Reply response:', result);
+
+            if (result.success) {
+                alert('Reply posted! (Refresh to see it)');
+                // Clear input
+                setReplyContent({ ...replyContent, [postId]: '' });
+                // Refresh replies
+                if (expandedPosts[postId]) {
+                    setExpandedPosts({ ...expandedPosts, [postId]: false });
+                    setTimeout(() => toggleReplies(postId), 100);
+                }
+            } else {
+                alert(result.message || 'Failed to post reply');
+            }
+        } catch (error: any) {
+            console.error('Error posting reply:', error);
+            alert('Failed to post reply: ' + error.message);
+        }
+    };
+
+    const handleDeleteReply = async (postId: string, replyId: string) => {
+        if (!confirm('Are you sure you want to delete this reply?')) {
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('sb-access-token') || localStorage.getItem('access_token');
+
+            const response = await fetch(`http://localhost:5000/api/board/requests/${postId}/replies/${replyId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Update local state
+                setPosts(posts.map(p => {
+                    if (p.id === postId && p.replies) {
+                        return {
+                            ...p,
+                            replies: p.replies.filter(r => r.id !== replyId),
+                            reply_count: (p.reply_count || 0) - 1
+                        };
+                    }
+                    return p;
+                }));
+            } else {
+                alert(result.message || 'Failed to delete reply');
+            }
+        } catch (error: any) {
+            console.error('Error deleting reply:', error);
+            alert('Failed to delete reply');
+        }
     };
 
     const filteredPosts = posts.filter(post =>
         post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.content.toLowerCase().includes(searchQuery.toLowerCase())
+        post.description.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    if (!user) {
+    const formatTimeAgo = (dateString: string) => {
+        const date = new Date(dateString);
+        const now = new Date();
+        const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+        if (seconds < 60) return 'Just now';
+        if (seconds < 3600) return `${Math.floor(seconds / 60)} mins ago`;
+        if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
+        return `${Math.floor(seconds / 86400)} days ago`;
+    };
+
+    if (!user || isLoading) {
         return (
             <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
@@ -231,69 +414,109 @@ const RequestBoardPage = () => {
                                 <div className="flex items-start justify-between mb-4">
                                     <div className="flex-1">
                                         <div className="flex items-center space-x-2 mb-2">
-                                            <span className="font-semibold">{post.author}</span>
+                                            <span className="font-semibold">User</span>
                                             <span className="text-gray-500 text-sm">•</span>
-                                            <span className="text-gray-500 text-sm">{post.timestamp}</span>
+                                            <span className="text-gray-500 text-sm">{formatTimeAgo(post.created_at)}</span>
                                             <span className="px-2 py-1 bg-blue-500/20 border border-blue-500/30 rounded text-xs">
                                                 {post.category}
                                             </span>
+                                            {post.budget && (
+                                                <span className="px-2 py-1 bg-emerald-500/20 border border-emerald-500/30 rounded text-xs">
+                                                    Budget: ₱{post.budget}
+                                                </span>
+                                            )}
                                         </div>
                                         <h3 className="text-xl font-bold mb-2">{post.title}</h3>
-                                        <p className="text-gray-300">{post.content}</p>
+                                        <p className="text-gray-300">{post.description}</p>
                                     </div>
+                                    {/* Delete button - only show if user owns the post */}
+                                    {user && post.user_id === user.id && (
+                                        <button
+                                            onClick={() => handleDeletePost(post.id)}
+                                            className="ml-4 p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
+                                            title="Delete request"
+                                        >
+                                            <Trash2 className="w-5 h-5" />
+                                        </button>
+                                    )}
                                 </div>
 
                                 {/* Post Actions */}
                                 <div className="flex items-center space-x-4 mb-4">
-                                    <button className="flex items-center space-x-2 text-gray-400 hover:text-blue-400 transition-colors">
-                                        <ThumbsUp className="w-5 h-5" />
-                                        <span>{post.likes}</span>
+                                    <button
+                                        onClick={() => handleLikePost(post.id)}
+                                        className={`flex items-center space-x-2 transition-colors ${post.user_liked
+                                            ? 'text-blue-400'
+                                            : 'text-gray-400 hover:text-blue-400'
+                                            }`}
+                                    >
+                                        <ThumbsUp className={`w-5 h-5 ${post.user_liked ? 'fill-current' : ''}`} />
+                                        <span>{post.like_count || 0}</span>
                                     </button>
                                     <button
-                                        onClick={() => setSelectedPost(selectedPost?.id === post.id ? null : post)}
+                                        onClick={() => toggleReplies(post.id)}
                                         className="flex items-center space-x-2 text-gray-400 hover:text-emerald-400 transition-colors"
                                     >
                                         <MessageSquare className="w-5 h-5" />
-                                        <span>{post.replies.length} replies</span>
+                                        <span>{post.reply_count || 0} replies</span>
                                     </button>
                                 </div>
 
                                 {/* Replies Section */}
-                                {selectedPost?.id === post.id && (
-                                    <div className="mt-4 pt-4 border-t border-slate-800">
-                                        {/* Existing Replies */}
-                                        <div className="space-y-3 mb-4">
-                                            {post.replies.map((reply) => (
-                                                <div key={reply.id} className="bg-slate-800/50 rounded-lg p-4">
-                                                    <div className="flex items-center space-x-2 mb-2">
-                                                        <span className="font-semibold text-sm">{reply.author}</span>
-                                                        <span className="text-gray-500 text-xs">•</span>
-                                                        <span className="text-gray-500 text-xs">{reply.timestamp}</span>
-                                                    </div>
-                                                    <p className="text-gray-300 text-sm">{reply.content}</p>
-                                                    <button className="flex items-center space-x-1 text-gray-400 hover:text-blue-400 transition-colors mt-2">
-                                                        <ThumbsUp className="w-4 h-4" />
-                                                        <span className="text-xs">{reply.likes}</span>
-                                                    </button>
-                                                </div>
-                                            ))}
-                                        </div>
-
+                                {expandedPosts[post.id] && (
+                                    <div className="mt-4 pt-4 border-t border-slate-700">
                                         {/* Reply Input */}
-                                        <div className="flex space-x-2">
+                                        <div className="flex gap-2 mb-4">
                                             <input
                                                 type="text"
                                                 placeholder="Write a reply..."
-                                                value={replyContent}
-                                                onChange={(e) => setReplyContent(e.target.value)}
-                                                className="flex-1 px-4 py-2 bg-slate-800/50 border border-blue-500/20 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-white placeholder-gray-500"
+                                                value={replyContent[post.id] || ''}
+                                                onChange={(e) => setReplyContent({ ...replyContent, [post.id]: e.target.value })}
+                                                onKeyPress={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        handleReply(post.id);
+                                                    }
+                                                }}
+                                                className="flex-1 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-white placeholder-gray-500"
                                             />
                                             <button
                                                 onClick={() => handleReply(post.id)}
-                                                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-lg hover:shadow-lg hover:shadow-blue-500/50 transition-all"
+                                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2"
                                             >
-                                                <Send className="w-5 h-5" />
+                                                <Send className="w-4 h-4" />
                                             </button>
+                                        </div>
+
+                                        {/* Replies List */}
+                                        <div className="space-y-3">
+                                            {post.replies && post.replies.length > 0 ? (
+                                                post.replies.map((reply) => (
+                                                    <div key={reply.id} className="bg-slate-800/50 rounded-lg p-4">
+                                                        <div className="flex items-start justify-between">
+                                                            <div className="flex-1">
+                                                                <div className="flex items-center space-x-2 mb-1">
+                                                                    <span className="font-semibold text-sm">User</span>
+                                                                    <span className="text-gray-500 text-xs">•</span>
+                                                                    <span className="text-gray-500 text-xs">{formatTimeAgo(reply.created_at)}</span>
+                                                                </div>
+                                                                <p className="text-gray-300 text-sm">{reply.message || reply.content}</p>
+                                                            </div>
+                                                            {/* Delete reply button */}
+                                                            {user && reply.user_id === user.id && (
+                                                                <button
+                                                                    onClick={() => handleDeleteReply(post.id, reply.id)}
+                                                                    className="ml-2 p-1 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors"
+                                                                    title="Delete reply"
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <p className="text-gray-500 text-sm text-center py-4">No replies yet. Be the first to reply!</p>
+                                            )}
                                         </div>
                                     </div>
                                 )}
@@ -312,65 +535,129 @@ const RequestBoardPage = () => {
                 </div>
             </div>
 
-            {/* New Post Modal */}
+            {/* New Post Modal - Redesigned */}
             {showNewPostModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="w-full max-w-2xl bg-slate-900/95 backdrop-blur-xl border border-blue-500/30 rounded-2xl shadow-2xl overflow-hidden">
-                        <div className="p-6 border-b border-blue-500/20">
-                            <h3 className="text-2xl font-bold">Create New Request</h3>
-                        </div>
-
-                        <div className="p-6 space-y-4">
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70"
+                    onClick={() => setShowNewPostModal(false)}
+                >
+                    <div
+                        className="w-full max-w-3xl max-h-[90vh] bg-slate-900 rounded-3xl border-2 border-slate-700 shadow-2xl overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between px-8 py-6 border-b border-slate-700 bg-slate-900">
                             <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Category</label>
-                                <select
-                                    value={newPost.category}
-                                    onChange={(e) => setNewPost({ ...newPost, category: e.target.value })}
-                                    className="w-full px-4 py-3 bg-slate-800/50 border border-blue-500/20 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-white"
-                                >
-                                    <option value="General">General</option>
-                                    <option value="Books">Books</option>
-                                    <option value="Electronics">Electronics</option>
-                                    <option value="Clothing">Clothing</option>
-                                    <option value="Other">Other</option>
-                                </select>
+                                <h2 className="text-3xl font-bold mb-1">Create New Request</h2>
+                                <p className="text-sm text-gray-400">Post what you're looking for</p>
                             </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Title</label>
-                                <input
-                                    type="text"
-                                    placeholder="What are you looking for?"
-                                    value={newPost.title}
-                                    onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
-                                    className="w-full px-4 py-3 bg-slate-800/50 border border-blue-500/20 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-white placeholder-gray-500"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
-                                <textarea
-                                    placeholder="Provide details about what you're looking for..."
-                                    value={newPost.content}
-                                    onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
-                                    rows={5}
-                                    className="w-full px-4 py-3 bg-slate-800/50 border border-blue-500/20 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-white placeholder-gray-500 resize-none"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="p-6 border-t border-blue-500/20 flex space-x-3">
                             <button
                                 onClick={() => setShowNewPostModal(false)}
-                                className="flex-1 px-4 py-3 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-all"
+                                className="w-12 h-12 flex items-center justify-center rounded-xl hover:bg-slate-800 transition-colors"
+                            >
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        {/* Modal Content - Optimized for smooth scrolling */}
+                        <div
+                            className="p-8 overflow-y-auto max-h-[calc(90vh-200px)] space-y-6"
+                            style={{
+                                scrollBehavior: 'smooth',
+                                WebkitOverflowScrolling: 'touch',
+                                willChange: 'scroll-position'
+                            }}
+                        >
+                            {/* Title */}
+                            <div>
+                                <label htmlFor="title" className="block text-base font-semibold text-white mb-3">
+                                    What are you looking for? <span className="text-red-400">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    id="title"
+                                    placeholder="e.g., Calculus 2 Textbook 9th Edition"
+                                    value={newPost.title}
+                                    onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
+                                    className="w-full px-6 py-4 text-lg bg-slate-800 border-2 border-slate-700 hover:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-white placeholder-gray-500"
+                                />
+                            </div>
+
+                            {/* Category and Budget Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Category */}
+                                <div>
+                                    <label htmlFor="category" className="block text-base font-semibold text-white mb-3">
+                                        Category <span className="text-red-400">*</span>
+                                    </label>
+                                    <select
+                                        id="category"
+                                        value={newPost.category}
+                                        onChange={(e) => setNewPost({ ...newPost, category: e.target.value })}
+                                        className="w-full px-6 py-4 text-lg bg-slate-800 border-2 border-slate-700 hover:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-white"
+                                    >
+                                        <option value="Textbooks">📚 Textbooks</option>
+                                        <option value="Electronics">💻 Electronics</option>
+                                        <option value="Clothing & Accessories">👕 Clothing & Accessories</option>
+                                        <option value="Furniture">🪑 Furniture</option>
+                                        <option value="School Supplies">✏️ School Supplies</option>
+                                        <option value="Sports Equipment">⚽ Sports Equipment</option>
+                                        <option value="Musical Instruments">🎸 Musical Instruments</option>
+                                        <option value="Books & Novels">📖 Books & Novels</option>
+                                        <option value="Other">🎁 Other</option>
+                                    </select>
+                                </div>
+
+                                {/* Budget */}
+                                <div>
+                                    <label htmlFor="budget" className="block text-base font-semibold text-white mb-3">
+                                        Budget <span className="text-gray-500 text-sm font-normal">(Optional)</span>
+                                    </label>
+                                    <div className="relative">
+                                        <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl text-gray-400">₱</span>
+                                        <input
+                                            type="number"
+                                            id="budget"
+                                            placeholder="0.00"
+                                            value={newPost.budget}
+                                            onChange={(e) => setNewPost({ ...newPost, budget: e.target.value })}
+                                            className="w-full pl-14 pr-6 py-4 text-lg bg-slate-800 border-2 border-slate-700 hover:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-white placeholder-gray-500"
+                                            step="0.01"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Description */}
+                            <div>
+                                <label htmlFor="description" className="block text-base font-semibold text-white mb-3">
+                                    Description <span className="text-red-400">*</span>
+                                </label>
+                                <textarea
+                                    id="description"
+                                    placeholder="Provide details... What condition? Any specific requirements? Where to meet?"
+                                    value={newPost.description}
+                                    onChange={(e) => setNewPost({ ...newPost, description: e.target.value })}
+                                    rows={5}
+                                    className="w-full px-6 py-4 text-lg bg-slate-800 border-2 border-slate-700 hover:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-white placeholder-gray-500 resize-none"
+                                />
+                                <p className="text-sm text-gray-500 mt-2">💡 Tip: Be specific to get better responses!</p>
+                            </div>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="flex gap-4 px-8 py-6 border-t border-slate-700 bg-slate-900">
+                            <button
+                                onClick={() => setShowNewPostModal(false)}
+                                className="flex-1 px-6 py-4 bg-slate-800 hover:bg-slate-700 rounded-xl font-bold text-lg transition-colors border-2 border-slate-700"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleCreatePost}
-                                className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-lg hover:shadow-lg hover:shadow-blue-500/50 transition-all font-medium"
+                                className="flex-1 px-6 py-4 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-xl font-bold text-lg hover:shadow-lg transition-all"
                             >
-                                Post Request
+                                🚀 Post Request
                             </button>
                         </div>
                     </div>
