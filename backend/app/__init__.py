@@ -17,6 +17,9 @@ def create_app():
     from app.routes.item import item_bp
     from app.routes.meetup import meetup_bp
     from app.routes.referral import referral_bp
+    from app.routes.offer import offer_bp
+    from app.routes.notifications import notifications_bp
+    from app.routes.friends import friends_bp
     
     
     print("Registering blueprints...")
@@ -38,7 +41,16 @@ def create_app():
     print("✓ Meetup blueprint registered")
     
     app.register_blueprint(referral_bp, url_prefix='/api/referral')
-    print("✓ Referral blueprint registered") 
+    print("✓ Referral blueprint registered")
+    
+    app.register_blueprint(offer_bp, url_prefix='/api/offer')
+    print("✓ Offer blueprint registered")
+    
+    app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
+    print("✓ Notifications blueprint registered")
+    
+    app.register_blueprint(friends_bp, url_prefix='/api/friends')
+    print("✓ Friends blueprint registered")
     
     @app.route('/')
     def index():

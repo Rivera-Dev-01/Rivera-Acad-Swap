@@ -1,8 +1,28 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Filter, ShoppingBag, X } from 'lucide-react';
+import { Search, Filter, ShoppingBag, X, MessageCircle } from 'lucide-react';
 import NavigationMenu from '../components/NavigationMenu';
 import ProfileAvatar from '../components/ProfileAvatar';
+import MakeOfferModal from '../components/MakeOfferModal';
+import Toast from '../components/Toast';
+
+// Custom Peso Icon
+const PesoIcon = ({ className }: { className?: string }) => (
+    <svg
+        className={className}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+    >
+        <path d="M5 6h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H5V6z" />
+        <line x1="5" y1="6" x2="5" y2="20" />
+        <line x1="3" y1="10" x2="11" y2="10" />
+        <line x1="3" y1="14" x2="11" y2="14" />
+    </svg>
+);
 
 const MarketplacePage = () => {
     const navigate = useNavigate();
@@ -17,6 +37,8 @@ const MarketplacePage = () => {
     const [error, setError] = useState<string | null>(null);
     const [selectedItem, setSelectedItem] = useState<any | null>(null);
     const [showItemModal, setShowItemModal] = useState(false);
+    const [showOfferModal, setShowOfferModal] = useState(false);
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
     // Category structure
     const categories: Record<string, string[]> = {
@@ -100,7 +122,7 @@ const MarketplacePage = () => {
             const result = await response.json();
 
             if (result.success) {
-                alert('Item marked as sold successfully!');
+                setToast({ message: 'Item marked as sold successfully!', type: 'success' });
                 setShowItemModal(false);
                 setSelectedItem(null);
                 // Refresh the items list
@@ -110,11 +132,44 @@ const MarketplacePage = () => {
                     setItems(refreshResult.data);
                 }
             } else {
-                alert(`Failed to mark item as sold: ${result.message}`);
+                setToast({ message: `Failed to mark item as sold: ${result.message}`, type: 'error' });
             }
         } catch (error) {
             console.error('Error marking item as sold:', error);
-            alert('An error occurred while marking the item as sold');
+            setToast({ message: 'An error occurred while marking the item as sold', type: 'error' });
+        }
+    };
+
+    const handleMakeOffer = async (offerAmount: number, message: string) => {
+        if (!selectedItem) return;
+
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch('http://localhost:5000/api/offer/create', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    item_id: selectedItem.id,
+                    offer_amount: offerAmount,
+                    message: message
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                setToast({ message: 'Offer sent successfully!', type: 'success' });
+                setShowOfferModal(false);
+                setShowItemModal(false);
+            } else {
+                setToast({ message: result.message || 'Failed to send offer', type: 'error' });
+            }
+        } catch (error) {
+            console.error('Error making offer:', error);
+            setToast({ message: 'An error occurred while sending the offer', type: 'error' });
         }
     };
 
@@ -607,7 +662,7 @@ const MarketplacePage = () => {
                         <div className="flex gap-4 px-8 py-6 border-t border-slate-700 bg-slate-900">
                             <button
                                 onClick={() => setShowItemModal(false)}
-                                className="flex-1 px-6 py-4 bg-slate-800 hover:bg-slate-700 rounded-xl font-bold text-lg transition-colors border-2 border-slate-700"
+                                className="px-6 py-4 bg-slate-800 hover:bg-slate-700 rounded-xl font-bold text-lg transition-colors border-2 border-slate-700"
                             >
                                 Close
                             </button>
@@ -621,20 +676,53 @@ const MarketplacePage = () => {
                                     Mark as Sold
                                 </button>
                             ) : (
-                                <button
-                                    onClick={() => {
-                                        // TODO: Add contact seller functionality
-                                        alert('Contact seller feature coming soon!');
-                                    }}
-                                    className="flex-1 px-6 py-4 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-xl font-bold text-lg hover:shadow-lg transition-all"
-                                >
-                                    Contact Seller
-                                </button>
+                                <>
+                                    <button
+                                        onClick={() => {
+                                            navigate('/messages', {
+                                                state: {
+                                                    openConversation: selectedItem.seller_id,
+                                                    userName: `${selectedItem.seller_first_name} ${selectedItem.seller_last_name}`,
+                                                    profilePicture: selectedItem.seller_profile_picture
+                                                }
+                                            });
+                                        }}
+                                        className="flex-1 px-6 py-4 glass-card hover:bg-slate-800/50 rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <MessageCircle className="w-5 h-5" />
+                                        Contact Seller
+                                    </button>
+                                    <button
+                                        onClick={() => setShowOfferModal(true)}
+                                        className="flex-1 px-6 py-4 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-xl font-bold text-lg hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <PesoIcon className="w-5 h-5" />
+                                        Make Offer
+                                    </button>
+                                </>
                             )}
                         </div>
                     </div>
                 </div>
             )}
+
+            {/* Make Offer Modal */}
+            {showOfferModal && selectedItem && (
+                <MakeOfferModal
+                    item={{
+                        id: selectedItem.id,
+                        title: selectedItem.title,
+                        price: selectedItem.price,
+                        seller_first_name: selectedItem.seller_first_name,
+                        seller_last_name: selectedItem.seller_last_name
+                    }}
+                    onClose={() => setShowOfferModal(false)}
+                    onSubmit={handleMakeOffer}
+                />
+            )}
+
+            {/* Toast Notifications */}
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };

@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 // 1. Import React Query Hook
 import { useQuery } from '@tanstack/react-query';
-import { ShoppingBag, Bell, Package, TrendingUp, Users, LogOut, Star, Activity, Plus, Store, MessageSquare, Calendar, List, Mail, UserPlus, CheckCircle, Search } from 'lucide-react';
-import UserSearchModal from '../components/UserSearchModal';
+import { Package, TrendingUp, Users, Star, Activity, Plus, Store, MessageSquare, Calendar, List, CheckCircle } from 'lucide-react';
+import NavigationMenu from '../components/NavigationMenu';
 
 // Custom Peso Icon Component
 const PesoIcon = ({ className }: { className?: string }) => (
@@ -110,9 +110,8 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
 const DashboardPage = () => {
     const navigate = useNavigate();
     const [user, setUser] = useState<any>(null);
-    const [showNotifications, setShowNotifications] = useState(false);
-    const [showSearch, setShowSearch] = useState(false);
     const [scrollY, setScrollY] = useState(0);
+    const [profileCompletion, setProfileCompletion] = useState(0);
 
     // 4. Handle User Auth (Check LocalStorage immediately)
     useEffect(() => {
@@ -146,6 +145,34 @@ const DashboardPage = () => {
         window.addEventListener('scroll', handleScroll, { passive: true });
         return () => window.removeEventListener('scroll', handleScroll);
     }, [navigate]);
+
+    // Fetch profile completion percentage
+    useEffect(() => {
+        const fetchProfileCompletion = async () => {
+            const token = localStorage.getItem('access_token');
+            if (!token) return;
+
+            try {
+                const response = await fetch('http://localhost:5000/api/user/profile/completion', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (data.success && data.tasks) {
+                    const tasks = data.tasks;
+                    const completedCount = Object.values(tasks).filter(Boolean).length;
+                    const totalTasks = Object.keys(tasks).length;
+                    const percentage = Math.round((completedCount / totalTasks) * 100);
+                    setProfileCompletion(percentage);
+                }
+            } catch (error) {
+                console.error('Error fetching profile completion:', error);
+            }
+        };
+
+        if (user) {
+            fetchProfileCompletion();
+        }
+    }, [user]);
 
     // 5. Implement TanStack Query (Replaces manual fetch & loading state)
     const {
@@ -194,11 +221,7 @@ const DashboardPage = () => {
     const animatedReputationScore = useCountUp(stats.reputationScore, 2600, !!apiData);
     const animatedEngagementRate = useCountUp(stats.engagementRate, 2800, !!apiData);
 
-    const [notifications] = useState([
-        { id: 1, message: 'Your item "Calculus Textbook" was viewed 5 times', time: '2 hours ago', type: 'view' },
-        { id: 2, message: 'New message from buyer about "Physics Notes"', time: '5 hours ago', type: 'message' },
-        { id: 3, message: 'Item "Laptop Stand" was sold!', time: '1 day ago', type: 'sale' }
-    ]);
+
 
     // 7. Handle Logout
     const handleLogout = () => {
@@ -306,71 +329,7 @@ const DashboardPage = () => {
             </div>
 
             {/* Navigation */}
-            <nav className="fixed w-full z-50 glass-nav">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center h-16">
-                        <Link to="/" className="flex items-center space-x-2">
-                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/50">
-                                <ShoppingBag className="w-6 h-6" />
-                            </div>
-                            <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-                                Acad Swap
-                            </span>
-                        </Link>
-
-                        <div className="flex items-center space-x-4">
-                            {/* Search Button */}
-                            <button
-                                onClick={() => setShowSearch(true)}
-                                className="p-2 hover:bg-slate-800/50 rounded-lg transition-colors"
-                                title="Search Users"
-                            >
-                                <Search className="w-6 h-6" />
-                            </button>
-
-                            {/* Notifications Bell */}
-                            <button
-                                onClick={() => setShowNotifications(true)}
-                                className="relative p-2 hover:bg-slate-800/50 rounded-lg transition-colors"
-                            >
-                                <Bell className="w-6 h-6" />
-                                {notifications.length > 0 && (
-                                    <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-                                )}
-                            </button>
-
-                            <div className="flex items-center space-x-3">
-                                <Link to="/profile" className="flex items-center space-x-3 hover:bg-slate-800/50 rounded-lg p-2 transition-colors">
-                                    {/* Profile Picture */}
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 p-0.5 flex-shrink-0">
-                                        <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center overflow-hidden">
-                                            {user.profile_picture ? (
-                                                <img src={user.profile_picture} alt="Profile" className="w-full h-full object-cover" />
-                                            ) : (
-                                                <span className="text-sm font-bold">
-                                                    {user.first_name[0]}{user.last_name[0]}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    {/* Name and Course */}
-                                    <div className="text-right">
-                                        <p className="text-sm font-medium">{user.first_name} {user.last_name}</p>
-                                        <p className="text-xs text-gray-400">{user.course}</p>
-                                    </div>
-                                </Link>
-                                <button
-                                    onClick={handleLogout}
-                                    className="p-2 hover:bg-red-500/20 rounded-lg transition-colors text-red-400"
-                                    title="Logout"
-                                >
-                                    <LogOut className="w-5 h-5" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </nav>
+            <NavigationMenu user={user} onLogout={handleLogout} />
 
             {/* Main Content */}
             <div className="relative pt-24 pb-12 px-4">
@@ -495,7 +454,7 @@ const DashboardPage = () => {
                             }}
                         >
                             <h3 className="text-xl font-bold mb-4">Quick Actions</h3>
-                            <div className="max-h-96 overflow-y-auto pr-2 space-y-2 scrollbar-thin scrollbar-thumb-blue-500/50 scrollbar-track-slate-800/50">
+                            <div className="space-y-2">
                                 {/* Primary Action */}
                                 <Link to="/list-item" className="block w-full">
                                     <button className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-lg hover:shadow-lg hover:shadow-blue-500/50 transition-all flex items-center space-x-3 group">
@@ -519,21 +478,11 @@ const DashboardPage = () => {
                                     </button>
                                 </Link>
 
-                                {/* Communication Actions */}
-                                <Link to="/offers-messages" className="block w-full">
+                                {/* Messages */}
+                                <Link to="/messages" className="block w-full">
                                     <button className="w-full px-4 py-3 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-all flex items-center space-x-3 group">
-                                        <Mail className="w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform" />
-                                        <div className="flex items-center justify-between flex-1">
-                                            <span>Offers & Messages</span>
-                                            <span className="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">3</span>
-                                        </div>
-                                    </button>
-                                </Link>
-
-                                <Link to="/request-board" className="block w-full">
-                                    <button className="w-full px-4 py-3 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-all flex items-center space-x-3 group">
-                                        <MessageSquare className="w-5 h-5 text-cyan-400 group-hover:scale-110 transition-transform" />
-                                        <span>Request Board</span>
+                                        <MessageSquare className="w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform" />
+                                        <span>Messages</span>
                                     </button>
                                 </Link>
 
@@ -542,27 +491,6 @@ const DashboardPage = () => {
                                     <button className="w-full px-4 py-3 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-all flex items-center space-x-3 group">
                                         <Calendar className="w-5 h-5 text-pink-400 group-hover:scale-110 transition-transform" />
                                         <span>Meetup Scheduler</span>
-                                    </button>
-                                </Link>
-
-                                {/* Profile & Rewards */}
-                                <Link to="/invite-friend" className="block w-full">
-                                    <button className="w-full px-4 py-3 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-all flex items-center space-x-3 group">
-                                        <UserPlus className="w-5 h-5 text-yellow-400 group-hover:scale-110 transition-transform" />
-                                        <div className="flex items-center justify-between flex-1">
-                                            <span>Invite a Friend</span>
-                                            <span className="text-xs text-yellow-400">+50 pts</span>
-                                        </div>
-                                    </button>
-                                </Link>
-
-                                <Link to="/profile-completion" className="block w-full">
-                                    <button className="w-full px-4 py-3 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-all flex items-center space-x-3 group">
-                                        <CheckCircle className="w-5 h-5 text-green-400 group-hover:scale-110 transition-transform" />
-                                        <div className="flex items-center justify-between flex-1">
-                                            <span>Profile Completion</span>
-                                            <span className="text-xs text-gray-400">75%</span>
-                                        </div>
                                     </button>
                                 </Link>
                             </div>
@@ -575,82 +503,47 @@ const DashboardPage = () => {
                                 backdropFilter: `blur(${Math.min(20 + scrollY * 0.05, 40)}px)`
                             }}
                         >
-                            <h3 className="text-xl font-bold mb-4">Recent Activity</h3>
-                            <div className="space-y-3">
-                                {notifications.slice(0, 3).map(notif => (
-                                    <div key={notif.id} className="p-3 bg-slate-800/50 rounded-lg">
-                                        <p className="text-sm text-gray-300">{notif.message}</p>
-                                        <p className="text-xs text-gray-500 mt-1">{notif.time}</p>
+                            <h3 className="text-xl font-bold mb-4">Profile Status</h3>
+
+                            {/* Profile Completion */}
+                            <Link to="/profile-completion" className="block mb-4">
+                                <div className="p-4 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-all cursor-pointer">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center space-x-3">
+                                            <CheckCircle className="w-5 h-5 text-green-400" />
+                                            <span className="font-semibold">Profile Completion</span>
+                                        </div>
+                                        <span className="text-lg font-bold text-green-400">{profileCompletion}%</span>
                                     </div>
-                                ))}
+                                    <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all duration-500"
+                                            style={{ width: `${profileCompletion}%` }}
+                                        ></div>
+                                    </div>
+                                    {profileCompletion < 100 && (
+                                        <p className="text-xs text-gray-400 mt-2">Complete your profile to unlock all features</p>
+                                    )}
+                                </div>
+                            </Link>
+
+                            <h3 className="text-lg font-bold mb-3">Quick Links</h3>
+                            <div className="space-y-2">
+                                <Link to="/marketplace" className="block p-3 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-all">
+                                    <p className="text-sm text-gray-300 font-medium">Browse Marketplace</p>
+                                    <p className="text-xs text-gray-500 mt-1">Find items from other students</p>
+                                </Link>
+                                <Link to="/request-board" className="block p-3 bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-all">
+                                    <p className="text-sm text-gray-300 font-medium">Request Board</p>
+                                    <p className="text-xs text-gray-500 mt-1">Post what you're looking for</p>
+                                </Link>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Notifications Modal */}
-            {showNotifications && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="w-full max-w-lg glass-card rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-                        {/* Modal Header */}
-                        <div className="p-6 border-b border-blue-500/20 bg-gradient-to-r from-blue-500/10 to-emerald-500/10">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-3">
-                                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-lg flex items-center justify-center">
-                                        <Bell className="w-5 h-5" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-xl font-bold">Recent Activity</h3>
-                                        <p className="text-sm text-gray-400">{notifications.length} notifications</p>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => setShowNotifications(false)}
-                                    className="w-8 h-8 flex items-center justify-center hover:bg-slate-800/50 rounded-lg transition-colors"
-                                >
-                                    <span className="text-2xl text-gray-400 hover:text-white">×</span>
-                                </button>
-                            </div>
-                        </div>
 
-                        {/* Modal Body */}
-                        <div className="max-h-96 overflow-y-auto">
-                            {notifications.map((notif, index) => (
-                                <div
-                                    key={notif.id}
-                                    className={`p-5 hover:bg-slate-800/50 transition-all cursor-pointer ${index !== notifications.length - 1 ? 'border-b border-slate-800/50' : ''
-                                        }`}
-                                >
-                                    <div className="flex items-start space-x-3">
-                                        <div className={`w-2 h-2 mt-2 rounded-full ${notif.type === 'sale' ? 'bg-emerald-500' :
-                                            notif.type === 'message' ? 'bg-blue-500' :
-                                                'bg-gray-500'
-                                            }`}></div>
-                                        <div className="flex-1">
-                                            <p className="text-sm text-gray-200">{notif.message}</p>
-                                            <p className="text-xs text-gray-500 mt-1">{notif.time}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Modal Footer */}
-                        <div className="p-4 border-t border-blue-500/20 bg-slate-900/50">
-                            <button
-                                onClick={() => setShowNotifications(false)}
-                                className="w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-lg hover:shadow-lg hover:shadow-blue-500/50 transition-all font-medium"
-                            >
-                                Mark all as read
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Search Modal */}
-            {showSearch && <UserSearchModal onClose={() => setShowSearch(false)} />}
         </div>
     );
 };

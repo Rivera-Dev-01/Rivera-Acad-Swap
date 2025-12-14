@@ -134,14 +134,22 @@ const UserProfileView = () => {
                                                 className="relative group"
                                                 title="Verified Profile"
                                             >
-                                                <div className="relative w-8 h-8">
-                                                    <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full blur-md opacity-60 group-hover:opacity-80 transition-opacity"></div>
-                                                    <div className="relative w-full h-full bg-gradient-to-br from-blue-500/30 to-cyan-500/30 backdrop-blur-xl rounded-full border border-white/20 shadow-lg flex items-center justify-center">
-                                                        <svg className="w-5 h-5 text-white drop-shadow-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                                            <polyline points="20 6 9 17 4 12"></polyline>
-                                                        </svg>
-                                                    </div>
-                                                </div>
+                                                {/* Star Badge */}
+                                                <svg className="w-6 h-6 drop-shadow-lg flex-shrink-0" viewBox="0 0 24 24" fill="none">
+                                                    <defs>
+                                                        <linearGradient id="starGradientUserProfile" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                            <stop offset="0%" stopColor="rgba(59, 130, 246, 0.8)" />
+                                                            <stop offset="100%" stopColor="rgba(34, 211, 238, 0.8)" />
+                                                        </linearGradient>
+                                                    </defs>
+                                                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"
+                                                        fill="url(#starGradientUserProfile)"
+                                                        stroke="white"
+                                                        strokeWidth="1.5"
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round" />
+                                                    <polyline points="9 12 11 14 15 10" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                </svg>
                                             </div>
                                         )}
                                     </h1>

@@ -132,8 +132,8 @@ const FindUsersPage = () => {
                             <button
                                 onClick={() => setViewMode('grid')}
                                 className={`p-2 rounded transition-all ${viewMode === 'grid'
-                                        ? 'bg-blue-500/30 text-blue-400'
-                                        : 'text-gray-400 hover:text-white'
+                                    ? 'bg-blue-500/30 text-blue-400'
+                                    : 'text-gray-400 hover:text-white'
                                     }`}
                             >
                                 <Grid className="w-5 h-5" />
@@ -141,8 +141,8 @@ const FindUsersPage = () => {
                             <button
                                 onClick={() => setViewMode('list')}
                                 className={`p-2 rounded transition-all ${viewMode === 'list'
-                                        ? 'bg-blue-500/30 text-blue-400'
-                                        : 'text-gray-400 hover:text-white'
+                                    ? 'bg-blue-500/30 text-blue-400'
+                                    : 'text-gray-400 hover:text-white'
                                     }`}
                             >
                                 <List className="w-5 h-5" />
@@ -236,14 +236,24 @@ const FindUsersPage = () => {
                                             size="lg"
                                         />
                                         <div className="mt-4">
-                                            <div className="font-semibold text-lg flex items-center justify-center space-x-2">
+                                            <div className="font-semibold text-lg flex items-center justify-center gap-2">
                                                 <span>{user.first_name} {user.last_name}</span>
                                                 {user.profile_completed && (
-                                                    <div className="w-5 h-5 bg-gradient-to-br from-blue-500/30 to-cyan-500/30 backdrop-blur-xl rounded-full border border-white/20 flex items-center justify-center shadow-lg shadow-blue-500/50">
-                                                        <svg className="w-3 h-3 text-white drop-shadow-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                                            <polyline points="20 6 9 17 4 12"></polyline>
-                                                        </svg>
-                                                    </div>
+                                                    <svg className="w-5 h-5 drop-shadow-lg flex-shrink-0" viewBox="0 0 24 24" fill="none">
+                                                        <defs>
+                                                            <linearGradient id="starGradientGrid" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                                <stop offset="0%" stopColor="rgba(59, 130, 246, 0.8)" />
+                                                                <stop offset="100%" stopColor="rgba(34, 211, 238, 0.8)" />
+                                                            </linearGradient>
+                                                        </defs>
+                                                        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"
+                                                            fill="url(#starGradientGrid)"
+                                                            stroke="white"
+                                                            strokeWidth="1.5"
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round" />
+                                                        <polyline points="9 12 11 14 15 10" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                    </svg>
                                                 )}
                                             </div>
                                             {user.course && (
@@ -279,14 +289,24 @@ const FindUsersPage = () => {
                                                 size="md"
                                             />
                                             <div>
-                                                <div className="font-semibold flex items-center space-x-2">
+                                                <div className="font-semibold flex items-center gap-2">
                                                     <span>{user.first_name} {user.last_name}</span>
                                                     {user.profile_completed && (
-                                                        <div className="w-4 h-4 bg-gradient-to-br from-blue-500/30 to-cyan-500/30 backdrop-blur-xl rounded-full border border-white/20 flex items-center justify-center">
-                                                            <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                                                <polyline points="20 6 9 17 4 12"></polyline>
-                                                            </svg>
-                                                        </div>
+                                                        <svg className="w-4 h-4 drop-shadow-lg flex-shrink-0" viewBox="0 0 24 24" fill="none">
+                                                            <defs>
+                                                                <linearGradient id="starGradientList" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                                    <stop offset="0%" stopColor="rgba(59, 130, 246, 0.8)" />
+                                                                    <stop offset="100%" stopColor="rgba(34, 211, 238, 0.8)" />
+                                                                </linearGradient>
+                                                            </defs>
+                                                            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"
+                                                                fill="url(#starGradientList)"
+                                                                stroke="white"
+                                                                strokeWidth="1.5"
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round" />
+                                                            <polyline points="9 12 11 14 15 10" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                        </svg>
                                                     )}
                                                 </div>
                                                 <div className="text-sm text-gray-400">
