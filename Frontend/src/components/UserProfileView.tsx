@@ -1,0 +1,250 @@
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Camera, Mail, Phone, MapPin, BookOpen, Calendar, Award, UserPlus, ArrowLeft } from 'lucide-react';
+import NavigationMenu from './NavigationMenu';
+
+const API_URL = 'http://localhost:5000/api';
+
+const UserProfileView = () => {
+    const { userId } = useParams();
+    const navigate = useNavigate();
+    const [profileUser, setProfileUser] = useState<any>(null);
+    const [currentUser, setCurrentUser] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [scrollY, setScrollY] = useState(0);
+
+    useEffect(() => {
+        const userData = localStorage.getItem('user');
+        if (!userData) {
+            navigate('/login');
+            return;
+        }
+        try {
+            setCurrentUser(JSON.parse(userData));
+        } catch (error) {
+            navigate('/login');
+        }
+
+        fetchUserProfile();
+
+        // Scroll effect
+        const handleScroll = () => {
+            setScrollY(window.scrollY);
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [userId]);
+
+    const fetchUserProfile = async () => {
+        const token = localStorage.getItem('access_token');
+        if (!token || !userId) return;
+
+        try {
+            const response = await fetch(`${API_URL}/user/profile/${userId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                setProfileUser(data.user);
+            }
+        } catch (error) {
+            console.error('Error fetching user profile:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const getReputationTier = (score: number) => {
+        if (score >= 100) return { name: 'Mythic', color: 'from-purple-500 to-pink-500', bgColor: 'bg-purple-500/20' };
+        if (score >= 75) return { name: 'Legend', color: 'from-yellow-500 to-orange-500', bgColor: 'bg-yellow-500/20' };
+        if (score >= 51) return { name: 'Rare', color: 'from-blue-500 to-cyan-500', bgColor: 'bg-blue-500/20' };
+        if (score >= 25) return { name: 'Uncommon', color: 'from-green-500 to-emerald-500', bgColor: 'bg-green-500/20' };
+        return { name: 'Common', color: 'from-gray-500 to-slate-500', bgColor: 'bg-gray-500/20' };
+    };
+
+    if (loading || !profileUser || !currentUser) {
+        return (
+            <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+            </div>
+        );
+    }
+
+    const tier = getReputationTier(profileUser.reputation_score || 0);
+    const isOwnProfile = currentUser.id === profileUser.id;
+
+    return (
+        <div className="min-h-screen bg-slate-950 text-white overflow-hidden relative">
+            {/* Animated Background */}
+            <div className="fixed inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950"></div>
+            </div>
+
+            <NavigationMenu
+                user={currentUser}
+                onLogout={() => {
+                    localStorage.clear();
+                    navigate('/');
+                }}
+            />
+
+            <div className="relative pt-24 pb-12 px-4">
+                <div className="max-w-4xl mx-auto">
+                    {/* Back Button */}
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="mb-6 flex items-center space-x-2 text-gray-400 hover:text-white transition-colors"
+                    >
+                        <ArrowLeft className="w-5 h-5" />
+                        <span>Back</span>
+                    </button>
+
+                    {/* Profile Header */}
+                    <div
+                        className="mb-8 p-8 glass-card rounded-2xl transition-all duration-300"
+                        style={{
+                            background: `rgba(15, 23, 42, ${Math.min(0.6 + scrollY * 0.001, 0.9)})`,
+                            backdropFilter: `blur(${Math.min(20 + scrollY * 0.05, 40)}px)`
+                        }}
+                    >
+                        <div className="flex items-start justify-between mb-6">
+                            <div className="flex items-center space-x-6">
+                                {/* Profile Picture */}
+                                <div className="relative">
+                                    <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 p-1">
+                                        <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center overflow-hidden">
+                                            {profileUser.profile_picture ? (
+                                                <img src={profileUser.profile_picture} alt="Profile" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <Camera className="w-12 h-12 text-gray-500" />
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Name and Reputation */}
+                                <div>
+                                    <h1 className="text-3xl font-bold mb-2 flex items-center space-x-2">
+                                        <span>{profileUser.first_name} {profileUser.last_name}</span>
+                                        {profileUser.profile_completed && (
+                                            <div
+                                                className="relative group"
+                                                title="Verified Profile"
+                                            >
+                                                <div className="relative w-8 h-8">
+                                                    <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full blur-md opacity-60 group-hover:opacity-80 transition-opacity"></div>
+                                                    <div className="relative w-full h-full bg-gradient-to-br from-blue-500/30 to-cyan-500/30 backdrop-blur-xl rounded-full border border-white/20 shadow-lg flex items-center justify-center">
+                                                        <svg className="w-5 h-5 text-white drop-shadow-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                                        </svg>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </h1>
+                                    <div className={`inline-flex items-center space-x-2 px-4 py-2 ${tier.bgColor} border border-${tier.color.split('-')[1]}-500/30 rounded-full`}>
+                                        <Award className="w-5 h-5" />
+                                        <span className={`font-bold bg-gradient-to-r ${tier.color} bg-clip-text text-transparent`}>
+                                            {tier.name}
+                                        </span>
+                                        <span className="text-gray-400">•</span>
+                                        <span className="font-semibold">{profileUser.reputation_score || 0} pts</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Add Friend Button (only for other users) */}
+                            {!isOwnProfile && (
+                                <button
+                                    className="px-6 py-3 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-lg hover:shadow-lg hover:shadow-blue-500/50 transition-all flex items-center space-x-2 font-semibold"
+                                    onClick={() => {
+                                        // TODO: Implement friend request functionality
+                                        console.log('Add friend clicked');
+                                    }}
+                                >
+                                    <UserPlus className="w-5 h-5" />
+                                    <span>Add Friend</span>
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Profile Info Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Email */}
+                            <div className="flex items-start space-x-3">
+                                <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <Mail className="w-5 h-5 text-blue-400" />
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-sm text-gray-400 mb-1">School Email</p>
+                                    <p className="font-medium">{profileUser.email}</p>
+                                </div>
+                            </div>
+
+                            {/* Phone */}
+                            {profileUser.phone_number && (
+                                <div className="flex items-start space-x-3">
+                                    <div className="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <Phone className="w-5 h-5 text-emerald-400" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-sm text-gray-400 mb-1">Phone Number</p>
+                                        <p className="font-medium">{profileUser.phone_number}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Course */}
+                            {profileUser.course && (
+                                <div className="flex items-start space-x-3">
+                                    <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <BookOpen className="w-5 h-5 text-purple-400" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-sm text-gray-400 mb-1">Course</p>
+                                        <p className="font-medium">{profileUser.course}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Year & Block */}
+                            {(profileUser.current_year || profileUser.block_section) && (
+                                <div className="flex items-start space-x-3">
+                                    <div className="w-10 h-10 bg-yellow-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <Calendar className="w-5 h-5 text-yellow-400" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-sm text-gray-400 mb-1">Year & Block</p>
+                                        <p className="font-medium">
+                                            {profileUser.current_year && profileUser.block_section
+                                                ? `${profileUser.current_year} - ${profileUser.block_section}`
+                                                : profileUser.current_year || profileUser.block_section}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Address */}
+                            {profileUser.address && (
+                                <div className="flex items-start space-x-3 md:col-span-2">
+                                    <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <MapPin className="w-5 h-5 text-red-400" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-sm text-gray-400 mb-1">Address</p>
+                                        <p className="font-medium">{profileUser.address}</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default UserProfileView;

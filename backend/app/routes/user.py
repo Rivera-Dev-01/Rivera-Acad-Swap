@@ -36,3 +36,103 @@ def get_dashboard():
         final_data = response
 
     return jsonify(final_data), status
+
+@user_bp.route('/profile', methods=['GET'])
+def get_profile():
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({"success": False, "message": "Missing Token"}), 401
+
+    token = auth_header.replace('Bearer ', '')
+    supabase = get_supabase()
+
+    try:
+        user_response = supabase.auth.get_user(token)
+        user_id = user_response.user.id
+    except Exception as e:
+        print(f"Auth error: {e}")
+        return jsonify({"success": False, "message": "Invalid or Expired Token"}), 401
+
+    response, status = UserService.get_profile(user_id)
+    return jsonify(response), status
+
+@user_bp.route('/profile', methods=['PUT'])
+def update_profile():
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({"success": False, "message": "Missing Token"}), 401
+
+    token = auth_header.replace('Bearer ', '')
+    supabase = get_supabase()
+
+    try:
+        user_response = supabase.auth.get_user(token)
+        user_id = user_response.user.id
+    except Exception as e:
+        print(f"Auth error: {e}")
+        return jsonify({"success": False, "message": "Invalid or Expired Token"}), 401
+
+    data = request.get_json()
+    response, status = UserService.update_profile(user_id, data)
+    return jsonify(response), status
+
+@user_bp.route('/profile/completion', methods=['GET'])
+def check_profile_completion():
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({"success": False, "message": "Missing Token"}), 401
+
+    token = auth_header.replace('Bearer ', '')
+    supabase = get_supabase()
+
+    try:
+        user_response = supabase.auth.get_user(token)
+        user_id = user_response.user.id
+    except Exception as e:
+        print(f"Auth error: {e}")
+        return jsonify({"success": False, "message": "Invalid or Expired Token"}), 401
+
+    response, status = UserService.check_profile_completion(user_id)
+    return jsonify(response), status
+
+@user_bp.route('/profile/<user_id>', methods=['GET'])
+def get_user_profile(user_id):
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({"success": False, "message": "Missing Token"}), 401
+
+    token = auth_header.replace('Bearer ', '')
+    supabase = get_supabase()
+
+    try:
+        user_response = supabase.auth.get_user(token)
+        # Just verify token is valid, don't need to match user_id
+    except Exception as e:
+        print(f"Auth error: {e}")
+        return jsonify({"success": False, "message": "Invalid or Expired Token"}), 401
+
+    response, status = UserService.get_user_profile_by_id(user_id)
+    return jsonify(response), status
+
+@user_bp.route('/search', methods=['GET'])
+def search_users():
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({"success": False, "message": "Missing Token"}), 401
+
+    token = auth_header.replace('Bearer ', '')
+    supabase = get_supabase()
+
+    try:
+        user_response = supabase.auth.get_user(token)
+        current_user_id = user_response.user.id
+    except Exception as e:
+        print(f"Auth error: {e}")
+        return jsonify({"success": False, "message": "Invalid or Expired Token"}), 401
+
+    query = request.args.get('q', '')
+    course = request.args.get('course', '')
+    year = request.args.get('year', '')
+    
+    response, status = UserService.search_users(query, course, year, current_user_id)
+    return jsonify(response), status

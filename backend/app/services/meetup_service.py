@@ -39,27 +39,31 @@ class MeetupService:
                 for meetup in meetups.data:
                     # Fetch seller info
                     try:
-                        seller_data = supabase.table('users').select('first_name, last_name, email').eq('id', meetup['seller_id']).single().execute()
+                        seller_data = supabase.table('users').select('first_name, last_name, email, profile_picture').eq('id', meetup['seller_id']).single().execute()
                         if seller_data.data:
                             meetup['seller_first_name'] = seller_data.data.get('first_name', 'Unknown')
                             meetup['seller_last_name'] = seller_data.data.get('last_name', 'User')
                             meetup['seller_email'] = seller_data.data.get('email', '')
+                            meetup['seller_profile_picture'] = seller_data.data.get('profile_picture')
                     except Exception as e:
                         print(f"Error fetching seller data: {e}")
                         meetup['seller_first_name'] = 'Unknown'
                         meetup['seller_last_name'] = 'User'
+                        meetup['seller_profile_picture'] = None
                     
                     # Fetch buyer info
                     try:
-                        buyer_data = supabase.table('users').select('first_name, last_name, email').eq('id', meetup['buyer_id']).single().execute()
+                        buyer_data = supabase.table('users').select('first_name, last_name, email, profile_picture').eq('id', meetup['buyer_id']).single().execute()
                         if buyer_data.data:
                             meetup['buyer_first_name'] = buyer_data.data.get('first_name', 'Unknown')
                             meetup['buyer_last_name'] = buyer_data.data.get('last_name', 'User')
                             meetup['buyer_email'] = buyer_data.data.get('email', '')
+                            meetup['buyer_profile_picture'] = buyer_data.data.get('profile_picture')
                     except Exception as e:
                         print(f"Error fetching buyer data: {e}")
                         meetup['buyer_first_name'] = 'Unknown'
                         meetup['buyer_last_name'] = 'User'
+                        meetup['buyer_profile_picture'] = None
                     
                     # Fetch item info
                     try:

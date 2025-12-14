@@ -4,6 +4,7 @@ import { Calendar, MapPin, Clock, Plus } from 'lucide-react';
 import NavigationMenu from '../components/NavigationMenu';
 import CreateMeetupModal from '../components/CreateMeetupModal.tsx';
 import MeetupDetailModal from '../components/MeetupDetailModal.tsx';
+import ProfileAvatar from '../components/ProfileAvatar';
 
 interface Meetup {
     id: string;
@@ -23,9 +24,11 @@ interface Meetup {
     seller_first_name: string;
     seller_last_name: string;
     seller_email: string;
+    seller_profile_picture?: string;
     buyer_first_name: string;
     buyer_last_name: string;
     buyer_email: string;
+    buyer_profile_picture?: string;
     item_title: string;
     item_price: number;
     item_images: string[];
@@ -240,9 +243,6 @@ const MeetupSchedulerPage = () => {
                         ) : (
                             filteredMeetups.map(meetup => {
                                 const isSeller = meetup.seller_id === user.id;
-                                const otherPerson = isSeller
-                                    ? `${meetup.buyer_first_name} ${meetup.buyer_last_name}`
-                                    : `${meetup.seller_first_name} ${meetup.seller_last_name}`;
 
                                 return (
                                     <div
@@ -261,9 +261,17 @@ const MeetupSchedulerPage = () => {
                                                         {getStatusLabel(meetup.status)}
                                                     </span>
                                                 </div>
-                                                <p className="text-gray-400 text-sm">
-                                                    {isSeller ? 'Buyer' : 'Seller'}: {otherPerson}
-                                                </p>
+                                                <div className="flex items-center space-x-2">
+                                                    <span className="text-gray-400 text-sm">{isSeller ? 'Buyer' : 'Seller'}:</span>
+                                                    <ProfileAvatar
+                                                        userId={isSeller ? meetup.buyer_id : meetup.seller_id}
+                                                        firstName={isSeller ? meetup.buyer_first_name : meetup.seller_first_name}
+                                                        lastName={isSeller ? meetup.buyer_last_name : meetup.seller_last_name}
+                                                        profilePicture={isSeller ? meetup.buyer_profile_picture : meetup.seller_profile_picture}
+                                                        size="sm"
+                                                        showName={true}
+                                                    />
+                                                </div>
                                             </div>
                                             <div className="text-right">
                                                 <div className="text-2xl font-bold text-emerald-400">₱{meetup.item_price}</div>

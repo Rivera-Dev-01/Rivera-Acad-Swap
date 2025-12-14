@@ -14,8 +14,12 @@ import {
     Calendar,
     UserPlus,
     CheckCircle,
-    LayoutDashboard
+    LayoutDashboard,
+    User,
+    Search,
+    Users
 } from 'lucide-react';
+import UserSearchModal from './UserSearchModal';
 
 interface NavigationMenuProps {
     user: any;
@@ -24,10 +28,13 @@ interface NavigationMenuProps {
 
 const NavigationMenu = ({ user, onLogout }: NavigationMenuProps) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [showSearch, setShowSearch] = useState(false);
     const location = useLocation();
 
     const menuItems = [
         { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', color: 'text-blue-400' },
+        { path: '/profile', icon: User, label: 'My Profile', color: 'text-indigo-400' },
+        { path: '/find-users', icon: Users, label: 'Find Users', color: 'text-teal-400' },
         { path: '/marketplace', icon: Store, label: 'Browse Marketplace', color: 'text-blue-400' },
         { path: '/my-listings', icon: List, label: 'My Listings', color: 'text-emerald-400' },
         { path: '/offers-messages', icon: Mail, label: 'Offers & Messages', color: 'text-purple-400', badge: 3 },
@@ -42,7 +49,7 @@ const NavigationMenu = ({ user, onLogout }: NavigationMenuProps) => {
     return (
         <>
             {/* Top Navigation Bar */}
-            <nav className="fixed w-full z-50 bg-slate-950/80 backdrop-blur-lg border-b border-blue-500/20">
+            <nav className="fixed w-full z-50 glass-nav">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-16">
                         {/* Logo and Hamburger */}
@@ -70,15 +77,39 @@ const NavigationMenu = ({ user, onLogout }: NavigationMenuProps) => {
 
                         {/* Right Side - User Info */}
                         <div className="flex items-center space-x-4">
+                            {/* Search Button */}
+                            <button
+                                onClick={() => setShowSearch(true)}
+                                className="p-2 hover:bg-slate-800/50 rounded-lg transition-colors"
+                                title="Search Users"
+                            >
+                                <Search className="w-6 h-6" />
+                            </button>
+
                             <button className="relative p-2 hover:bg-slate-800/50 rounded-lg transition-colors">
                                 <Bell className="w-6 h-6" />
                                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
                             </button>
                             <div className="hidden md:flex items-center space-x-3">
-                                <div className="text-right">
-                                    <p className="text-sm font-medium">{user.first_name} {user.last_name}</p>
-                                    <p className="text-xs text-gray-400">{user.course}</p>
-                                </div>
+                                <Link to="/profile" className="flex items-center space-x-3 hover:bg-slate-800/50 rounded-lg p-2 transition-colors">
+                                    {/* Profile Picture */}
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 p-0.5 flex-shrink-0">
+                                        <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center overflow-hidden">
+                                            {user.profile_picture ? (
+                                                <img src={user.profile_picture} alt="Profile" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <span className="text-sm font-bold">
+                                                    {user.first_name[0]}{user.last_name[0]}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {/* Name and Course */}
+                                    <div className="text-right">
+                                        <p className="text-sm font-medium">{user.first_name} {user.last_name}</p>
+                                        <p className="text-xs text-gray-400">{user.course}</p>
+                                    </div>
+                                </Link>
                                 <button
                                     onClick={onLogout}
                                     className="p-2 hover:bg-red-500/20 rounded-lg transition-colors text-red-400"
@@ -105,7 +136,7 @@ const NavigationMenu = ({ user, onLogout }: NavigationMenuProps) => {
 
                 {/* Menu Panel */}
                 <div
-                    className={`absolute top-16 left-0 h-[calc(100vh-4rem)] w-80 bg-slate-900/95 backdrop-blur-xl border-r border-blue-500/20 shadow-2xl transition-transform duration-300 ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'
+                    className={`absolute top-16 left-0 h-[calc(100vh-4rem)] w-80 glass-card border-r shadow-2xl transition-transform duration-300 ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'
                         }`}
                 >
                     <div className="p-6 h-full flex flex-col">
@@ -142,8 +173,8 @@ const NavigationMenu = ({ user, onLogout }: NavigationMenuProps) => {
                                         to={item.path}
                                         onClick={() => setIsMenuOpen(false)}
                                         className={`w-full px-4 py-3 rounded-lg transition-all flex items-center justify-between group ${active
-                                                ? 'bg-gradient-to-r from-blue-600/20 to-emerald-600/20 border border-blue-500/30'
-                                                : 'hover:bg-slate-800/50'
+                                            ? 'bg-gradient-to-r from-blue-600/20 to-emerald-600/20 border border-blue-500/30'
+                                            : 'hover:bg-slate-800/50'
                                             }`}
                                     >
                                         <div className="flex items-center space-x-3">
@@ -152,10 +183,10 @@ const NavigationMenu = ({ user, onLogout }: NavigationMenuProps) => {
                                         </div>
                                         {item.badge && (
                                             <span className={`text-xs px-2 py-0.5 rounded-full ${typeof item.badge === 'number'
-                                                    ? 'bg-red-500 text-white'
-                                                    : item.badge.includes('pts')
-                                                        ? 'text-yellow-400'
-                                                        : 'text-gray-400'
+                                                ? 'bg-red-500 text-white'
+                                                : item.badge.includes('pts')
+                                                    ? 'text-yellow-400'
+                                                    : 'text-gray-400'
                                                 }`}>
                                                 {item.badge}
                                             </span>
@@ -179,6 +210,9 @@ const NavigationMenu = ({ user, onLogout }: NavigationMenuProps) => {
                     </div>
                 </div>
             </div>
+
+            {/* Search Modal */}
+            {showSearch && <UserSearchModal onClose={() => setShowSearch(false)} />}
         </>
     );
 };

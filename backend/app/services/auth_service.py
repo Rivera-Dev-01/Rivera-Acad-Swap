@@ -62,7 +62,8 @@ class AuthService:
                 "course": course,
                 "phone_number": phone_number,
                 "referral_code": new_referral_code,
-                "referred_by": referrer_id
+                "referred_by": referrer_id,
+                "profile_completed": False
             }
             
             print(f"Inserting user data: {user_data}")

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Filter, ShoppingBag, X } from 'lucide-react';
 import NavigationMenu from '../components/NavigationMenu';
+import ProfileAvatar from '../components/ProfileAvatar';
 
 const MarketplacePage = () => {
     const navigate = useNavigate();
@@ -449,12 +450,14 @@ const MarketplacePage = () => {
                                     </div>
 
                                     <div className="flex items-center justify-between pt-3 border-t border-slate-800">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center text-sm font-bold">
-                                                {item.seller_first_name?.[0] || 'S'}
-                                            </div>
-                                            <span className="text-sm text-gray-400 font-medium">{item.seller_first_name} {item.seller_last_name}</span>
-                                        </div>
+                                        <ProfileAvatar
+                                            userId={item.seller_id}
+                                            firstName={item.seller_first_name}
+                                            lastName={item.seller_last_name}
+                                            profilePicture={item.seller_profile_picture}
+                                            size="sm"
+                                            showName={true}
+                                        />
                                     </div>
                                 </div>
 
@@ -578,11 +581,20 @@ const MarketplacePage = () => {
                                     <div className="pt-4 border-t border-slate-700">
                                         <div className="text-sm text-gray-400 mb-3">Seller</div>
                                         <div className="flex items-center gap-3">
-                                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center text-lg font-bold">
-                                                {selectedItem.seller_first_name?.[0] || 'S'}
-                                            </div>
+                                            <ProfileAvatar
+                                                userId={selectedItem.seller_id}
+                                                firstName={selectedItem.seller_first_name}
+                                                lastName={selectedItem.seller_last_name}
+                                                profilePicture={selectedItem.seller_profile_picture}
+                                                size="lg"
+                                            />
                                             <div>
-                                                <div className="font-semibold text-lg">{selectedItem.seller_first_name} {selectedItem.seller_last_name}</div>
+                                                <div
+                                                    className="font-semibold text-lg hover:text-blue-400 cursor-pointer transition-colors"
+                                                    onClick={() => navigate(`/user/${selectedItem.seller_id}`)}
+                                                >
+                                                    {selectedItem.seller_first_name} {selectedItem.seller_last_name}
+                                                </div>
                                                 <div className="text-sm text-gray-400">Listed {new Date(selectedItem.created_at).toLocaleDateString()}</div>
                                             </div>
                                         </div>

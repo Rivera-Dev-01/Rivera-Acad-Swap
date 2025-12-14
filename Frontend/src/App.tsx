@@ -11,6 +11,9 @@ import MyListingsPage from './Pages/MyListingsPage';
 import OffersMessagesPage from './Pages/OffersMessagesPage';
 import InviteFriendPage from './Pages/InviteFriendPage';
 import ProfileCompletionPage from './Pages/ProfileCompletionPage';
+import ProfilePage from './Pages/ProfilePage';
+import UserProfileView from './components/UserProfileView';
+import FindUsersPage from './Pages/FindUsersPage';
 
 function App() {
   return (
@@ -28,6 +31,9 @@ function App() {
         <Route path="/offers-messages" element={<OffersMessagesPage />} />
         <Route path="/invite-friend" element={<InviteFriendPage />} />
         <Route path="/profile-completion" element={<ProfileCompletionPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/find-users" element={<FindUsersPage />} />
+        <Route path="/user/:userId" element={<UserProfileView />} />
       </Routes>
     </Router>
   );

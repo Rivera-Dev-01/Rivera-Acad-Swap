@@ -5,22 +5,34 @@ class ItemService:
     def create_item(user_id, data):
         supabase = get_supabase()
 
-        item_payload = {
-            "title": data.get("title"),
-            "category": data.get("category"),
-            "subcategory": data.get("subcategory"),
-            "price": data.get("price"),
-            "condition": data.get("condition"),
-            "description": data.get("description"),
-            "notes": data.get("notes"),
-            "size": data.get("size"),
-            "images": data.get("images", []),
-            "seller_id": user_id
-        }
-
         try:
+            # Check profile completion status
+            user_response = supabase.table('users').select('profile_completed').eq('id', user_id).single().execute()
+            profile_completed = user_response.data.get('profile_completed', False)
+            
+            # If profile not completed, check if user already has 1 listing
+            if not profile_completed:
+                items_count = supabase.table('items').select('id', count='exact').eq('seller_id', user_id).execute()
+                if (items_count.count or 0) >= 1:
+                    return {
+                        "success": False, 
+                        "message": "Please complete your profile to list more items. You can only have 1 listing until your profile is complete."
+                    }, 403
+
+            item_payload = {
+                "title": data.get("title"),
+                "category": data.get("category"),
+                "subcategory": data.get("subcategory"),
+                "price": data.get("price"),
+                "condition": data.get("condition"),
+                "description": data.get("description"),
+                "notes": data.get("notes"),
+                "size": data.get("size"),
+                "images": data.get("images", []),
+                "seller_id": user_id
+            }
+
             response = supabase.table('items').insert(item_payload).execute()
-            # Depending on Supabase version, response might be .data or inside response
             return {"success": True, "data": response.data}, 201
         
         except Exception as e:

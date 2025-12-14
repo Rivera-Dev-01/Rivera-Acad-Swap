@@ -2,13 +2,32 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 // 1. Import React Query Hook
 import { useQuery } from '@tanstack/react-query';
-import { ShoppingBag, Bell, Package, DollarSign, TrendingUp, Users, LogOut, Star, Activity, Plus, Store, MessageSquare, Calendar, List, Mail, UserPlus, CheckCircle } from 'lucide-react';
+import { ShoppingBag, Bell, Package, TrendingUp, Users, LogOut, Star, Activity, Plus, Store, MessageSquare, Calendar, List, Mail, UserPlus, CheckCircle, Search } from 'lucide-react';
+import UserSearchModal from '../components/UserSearchModal';
+
+// Custom Peso Icon Component
+const PesoIcon = ({ className }: { className?: string }) => (
+    <svg
+        className={className}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+    >
+        <path d="M5 6h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H5V6z" />
+        <line x1="5" y1="6" x2="5" y2="20" />
+        <line x1="3" y1="10" x2="11" y2="10" />
+        <line x1="3" y1="14" x2="11" y2="14" />
+    </svg>
+);
 
 // Custom hook for smooth counting animation with fluid easing
 const useCountUp = (end: number, duration: number = 1000, shouldAnimate: boolean = true) => {
     const [count, setCount] = useState(0);
     const startTimeRef = useRef<number | null>(null);
-    const animationFrameRef = useRef<number>();
+    const animationFrameRef = useRef<number | undefined>(undefined);
 
     useEffect(() => {
         if (!shouldAnimate) {
@@ -62,6 +81,8 @@ interface DashboardStats {
     stats: {
         active_listings: number;
         total_sales: number;
+        total_earnings: number;
+        engagement_rate: number;
     };
 }
 
@@ -90,6 +111,8 @@ const DashboardPage = () => {
     const navigate = useNavigate();
     const [user, setUser] = useState<any>(null);
     const [showNotifications, setShowNotifications] = useState(false);
+    const [showSearch, setShowSearch] = useState(false);
+    const [scrollY, setScrollY] = useState(0);
 
     // 4. Handle User Auth (Check LocalStorage immediately)
     useEffect(() => {
@@ -104,6 +127,24 @@ const DashboardPage = () => {
         } catch (error) {
             navigate('/login');
         }
+
+        // Restore scroll position on page load
+        const savedScrollY = sessionStorage.getItem('dashboardScrollY');
+        if (savedScrollY) {
+            window.scrollTo(0, parseInt(savedScrollY));
+            setScrollY(parseInt(savedScrollY));
+        }
+
+        // Scroll effect
+        const handleScroll = () => {
+            const currentScrollY = window.scrollY;
+            setScrollY(currentScrollY);
+            // Save scroll position
+            sessionStorage.setItem('dashboardScrollY', currentScrollY.toString());
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
     }, [navigate]);
 
     // 5. Implement TanStack Query (Replaces manual fetch & loading state)
@@ -116,7 +157,7 @@ const DashboardPage = () => {
         queryKey: ['dashboardStats', user?.id], // Include user ID to prevent cache collision
         queryFn: fetchDashboardStats,
         staleTime: 0,     // Always refetch on mount to ensure fresh data
-        cacheTime: 0,     // Don't cache data to prevent showing wrong user's data
+        gcTime: 0,        // Don't cache data to prevent showing wrong user's data (renamed from cacheTime in v5)
         retry: 1,
         enabled: !!user // Only run query when user is loaded
     });
@@ -136,13 +177,12 @@ const DashboardPage = () => {
         currentlySelling: apiData?.stats?.active_listings ?? 0,
         soldItems: apiData?.stats?.total_sales ?? 0,
         totalEarnings: apiData?.stats?.total_earnings ?? 0,
+        engagementRate: apiData?.stats?.engagement_rate ?? 0,
 
         // Reputation score from user data
         reputationScore: apiData?.user?.reputation_score ?? 0,
 
-        // These do NOT exist in your Backend yet.
-        // We set them to 0 so the UI shows "0" (Clean slate) instead of an error.
-        engagementRate: 0,
+        // This does NOT exist in your Backend yet.
         friendsCount: 0
     };
 
@@ -152,6 +192,7 @@ const DashboardPage = () => {
     const animatedSoldItems = useCountUp(stats.soldItems, 2200, !!apiData);
     const animatedTotalEarnings = useCountUp(stats.totalEarnings, 2400, !!apiData);
     const animatedReputationScore = useCountUp(stats.reputationScore, 2600, !!apiData);
+    const animatedEngagementRate = useCountUp(stats.engagementRate, 2800, !!apiData);
 
     const [notifications] = useState([
         { id: 1, message: 'Your item "Calculus Textbook" was viewed 5 times', time: '2 hours ago', type: 'view' },
@@ -265,7 +306,7 @@ const DashboardPage = () => {
             </div>
 
             {/* Navigation */}
-            <nav className="fixed w-full z-50 bg-slate-950/80 backdrop-blur-lg border-b border-blue-500/20">
+            <nav className="fixed w-full z-50 glass-nav">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-16">
                         <Link to="/" className="flex items-center space-x-2">
@@ -278,6 +319,15 @@ const DashboardPage = () => {
                         </Link>
 
                         <div className="flex items-center space-x-4">
+                            {/* Search Button */}
+                            <button
+                                onClick={() => setShowSearch(true)}
+                                className="p-2 hover:bg-slate-800/50 rounded-lg transition-colors"
+                                title="Search Users"
+                            >
+                                <Search className="w-6 h-6" />
+                            </button>
+
                             {/* Notifications Bell */}
                             <button
                                 onClick={() => setShowNotifications(true)}
@@ -290,10 +340,25 @@ const DashboardPage = () => {
                             </button>
 
                             <div className="flex items-center space-x-3">
-                                <div className="text-right">
-                                    <p className="text-sm font-medium">{user.first_name} {user.last_name}</p>
-                                    <p className="text-xs text-gray-400">{user.course}</p>
-                                </div>
+                                <Link to="/profile" className="flex items-center space-x-3 hover:bg-slate-800/50 rounded-lg p-2 transition-colors">
+                                    {/* Profile Picture */}
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 p-0.5 flex-shrink-0">
+                                        <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center overflow-hidden">
+                                            {user.profile_picture ? (
+                                                <img src={user.profile_picture} alt="Profile" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <span className="text-sm font-bold">
+                                                    {user.first_name[0]}{user.last_name[0]}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {/* Name and Course */}
+                                    <div className="text-right">
+                                        <p className="text-sm font-medium">{user.first_name} {user.last_name}</p>
+                                        <p className="text-xs text-gray-400">{user.course}</p>
+                                    </div>
+                                </Link>
                                 <button
                                     onClick={handleLogout}
                                     className="p-2 hover:bg-red-500/20 rounded-lg transition-colors text-red-400"
@@ -321,7 +386,13 @@ const DashboardPage = () => {
                     {/* Stats Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                         {/* Currently Selling */}
-                        <div className="p-6 bg-slate-900/50 backdrop-blur-xl border border-blue-500/20 rounded-2xl hover:border-blue-500/50 transition-all">
+                        <div
+                            className="p-6 glass-card glass-card-hover rounded-2xl transition-all"
+                            style={{
+                                background: `rgba(15, 23, 42, ${Math.min(0.6 + scrollY * 0.001, 0.9)})`,
+                                backdropFilter: `blur(${Math.min(20 + scrollY * 0.05, 40)}px)`
+                            }}
+                        >
                             <div className="flex items-center justify-between mb-4">
                                 <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center">
                                     <Package className="w-6 h-6" />
@@ -332,7 +403,13 @@ const DashboardPage = () => {
                         </div>
 
                         {/* Sold Items */}
-                        <div className="p-6 bg-slate-900/50 backdrop-blur-xl border border-emerald-500/20 rounded-2xl hover:border-emerald-500/50 transition-all">
+                        <div
+                            className="p-6 glass-card glass-card-hover rounded-2xl transition-all"
+                            style={{
+                                background: `rgba(15, 23, 42, ${Math.min(0.6 + scrollY * 0.001, 0.9)})`,
+                                backdropFilter: `blur(${Math.min(20 + scrollY * 0.05, 40)}px)`
+                            }}
+                        >
                             <div className="flex items-center justify-between mb-4">
                                 <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-xl flex items-center justify-center">
                                     <TrendingUp className="w-6 h-6" />
@@ -343,10 +420,16 @@ const DashboardPage = () => {
                         </div>
 
                         {/* Total Earnings */}
-                        <div className="p-6 bg-slate-900/50 backdrop-blur-xl border border-teal-500/20 rounded-2xl hover:border-teal-500/50 transition-all">
+                        <div
+                            className="p-6 glass-card glass-card-hover rounded-2xl transition-all"
+                            style={{
+                                background: `rgba(15, 23, 42, ${Math.min(0.6 + scrollY * 0.001, 0.9)})`,
+                                backdropFilter: `blur(${Math.min(20 + scrollY * 0.05, 40)}px)`
+                            }}
+                        >
                             <div className="flex items-center justify-between mb-4">
                                 <div className="w-12 h-12 bg-gradient-to-br from-teal-500 to-teal-700 rounded-xl flex items-center justify-center">
-                                    <DollarSign className="w-6 h-6" />
+                                    <PesoIcon className="w-6 h-6" />
                                 </div>
                                 <span className="text-2xl font-bold">₱{animatedTotalEarnings.toLocaleString()}</span>
                             </div>
@@ -368,18 +451,30 @@ const DashboardPage = () => {
                         </div>
 
                         {/* Engagement Rate */}
-                        <div className="p-6 bg-slate-900/50 backdrop-blur-xl border border-purple-500/20 rounded-2xl hover:border-purple-500/50 transition-all">
+                        <div
+                            className="p-6 glass-card glass-card-hover rounded-2xl transition-all"
+                            style={{
+                                background: `rgba(15, 23, 42, ${Math.min(0.6 + scrollY * 0.001, 0.9)})`,
+                                backdropFilter: `blur(${Math.min(20 + scrollY * 0.05, 40)}px)`
+                            }}
+                        >
                             <div className="flex items-center justify-between mb-4">
                                 <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-700 rounded-xl flex items-center justify-center">
                                     <Activity className="w-6 h-6" />
                                 </div>
-                                <span className="text-2xl font-bold">{stats.engagementRate}%</span>
+                                <span className="text-2xl font-bold">{animatedEngagementRate}%</span>
                             </div>
                             <h3 className="text-gray-400 text-sm">Engagement Rate</h3>
                         </div>
 
                         {/* Friends */}
-                        <div className="p-6 bg-slate-900/50 backdrop-blur-xl border border-pink-500/20 rounded-2xl hover:border-pink-500/50 transition-all">
+                        <div
+                            className="p-6 glass-card glass-card-hover rounded-2xl transition-all"
+                            style={{
+                                background: `rgba(15, 23, 42, ${Math.min(0.6 + scrollY * 0.001, 0.9)})`,
+                                backdropFilter: `blur(${Math.min(20 + scrollY * 0.05, 40)}px)`
+                            }}
+                        >
                             <div className="flex items-center justify-between mb-4">
                                 <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-pink-700 rounded-xl flex items-center justify-center">
                                     <Users className="w-6 h-6" />
@@ -392,7 +487,13 @@ const DashboardPage = () => {
 
                     {/* Quick Actions */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="p-6 bg-slate-900/50 backdrop-blur-xl border border-blue-500/20 rounded-2xl">
+                        <div
+                            className="p-6 glass-card rounded-2xl transition-all duration-300"
+                            style={{
+                                background: `rgba(15, 23, 42, ${Math.min(0.6 + scrollY * 0.001, 0.9)})`,
+                                backdropFilter: `blur(${Math.min(20 + scrollY * 0.05, 40)}px)`
+                            }}
+                        >
                             <h3 className="text-xl font-bold mb-4">Quick Actions</h3>
                             <div className="max-h-96 overflow-y-auto pr-2 space-y-2 scrollbar-thin scrollbar-thumb-blue-500/50 scrollbar-track-slate-800/50">
                                 {/* Primary Action */}
@@ -467,7 +568,13 @@ const DashboardPage = () => {
                             </div>
                         </div>
 
-                        <div className="p-6 bg-slate-900/50 backdrop-blur-xl border border-blue-500/20 rounded-2xl">
+                        <div
+                            className="p-6 glass-card rounded-2xl transition-all duration-300"
+                            style={{
+                                background: `rgba(15, 23, 42, ${Math.min(0.6 + scrollY * 0.001, 0.9)})`,
+                                backdropFilter: `blur(${Math.min(20 + scrollY * 0.05, 40)}px)`
+                            }}
+                        >
                             <h3 className="text-xl font-bold mb-4">Recent Activity</h3>
                             <div className="space-y-3">
                                 {notifications.slice(0, 3).map(notif => (
@@ -485,7 +592,7 @@ const DashboardPage = () => {
             {/* Notifications Modal */}
             {showNotifications && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="w-full max-w-lg bg-slate-900/95 backdrop-blur-xl border border-blue-500/30 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                    <div className="w-full max-w-lg glass-card rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
                         {/* Modal Header */}
                         <div className="p-6 border-b border-blue-500/20 bg-gradient-to-r from-blue-500/10 to-emerald-500/10">
                             <div className="flex items-center justify-between">
@@ -541,6 +648,9 @@ const DashboardPage = () => {
                     </div>
                 </div>
             )}
+
+            {/* Search Modal */}
+            {showSearch && <UserSearchModal onClose={() => setShowSearch(false)} />}
         </div>
     );
 };

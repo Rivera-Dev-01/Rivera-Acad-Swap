@@ -1,69 +1,47 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle, Circle, Camera, MapPin, Phone, Mail, User, ShoppingBag } from 'lucide-react';
+import { CheckCircle, Circle, Camera, MapPin, ShoppingBag } from 'lucide-react';
 import NavigationMenu from '../components/NavigationMenu';
+import Toast from '../components/Toast';
+
+const API_URL = 'http://localhost:5000/api';
 
 interface ProfileTask {
     id: string;
     title: string;
     description: string;
     completed: boolean;
-    points: number;
     icon: any;
 }
 
 const ProfileCompletionPage = () => {
     const navigate = useNavigate();
     const [user, setUser] = useState<any>(null);
-
-    // Mock profile tasks - replace with real data from backend
-    const [tasks] = useState<ProfileTask[]>([
+    const [loading, setLoading] = useState(true);
+    const [showToast, setShowToast] = useState(false);
+    const [toastMessage, setToastMessage] = useState('');
+    const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('success');
+    const [scrollY, setScrollY] = useState(0);
+    const [tasks, setTasks] = useState<ProfileTask[]>([
         {
-            id: 'basic_info',
-            title: 'Complete Basic Information',
-            description: 'Name, email, and phone number',
-            completed: true,
-            points: 10,
-            icon: User
-        },
-        {
-            id: 'profile_photo',
-            title: 'Upload Profile Photo',
-            description: 'Add a profile picture',
+            id: 'profile_picture',
+            title: 'Upload Profile Picture',
+            description: 'Add a profile picture to your account',
             completed: false,
-            points: 15,
             icon: Camera
         },
         {
-            id: 'location',
-            title: 'Add Location',
-            description: 'Set your campus location',
-            completed: true,
-            points: 10,
-            icon: MapPin
-        },
-        {
-            id: 'phone_verify',
-            title: 'Verify Phone Number',
-            description: 'Confirm your phone number',
+            id: 'address',
+            title: 'Add Address',
+            description: 'Set your address for meetups',
             completed: false,
-            points: 20,
-            icon: Phone
-        },
-        {
-            id: 'email_verify',
-            title: 'Verify Email Address',
-            description: 'Confirm your university email',
-            completed: true,
-            points: 20,
-            icon: Mail
+            icon: MapPin
         },
         {
             id: 'first_listing',
             title: 'Create First Listing',
             description: 'List your first item for sale',
             completed: false,
-            points: 25,
             icon: ShoppingBag
         }
     ]);
@@ -75,19 +53,94 @@ const ProfileCompletionPage = () => {
             return;
         }
         try {
-            setUser(JSON.parse(userData));
+            const parsedUser = JSON.parse(userData);
+            setUser(parsedUser);
+
+            // Auto-check profile completion on mount to show correct status (no toast)
+            checkProfileCompletion(false);
         } catch (error) {
             navigate('/login');
         }
+
+        // Restore scroll position on page load
+        const savedScrollY = sessionStorage.getItem('profileCompletionScrollY');
+        if (savedScrollY) {
+            window.scrollTo(0, parseInt(savedScrollY));
+            setScrollY(parseInt(savedScrollY));
+        }
+
+        // Scroll effect
+        const handleScroll = () => {
+            const currentScrollY = window.scrollY;
+            setScrollY(currentScrollY);
+            // Save scroll position
+            sessionStorage.setItem('profileCompletionScrollY', currentScrollY.toString());
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
     }, [navigate]);
+
+    const checkProfileCompletion = async (showToastMessage = false) => {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            setLoading(false);
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/user/profile/completion`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                const { tasks: taskStatus, profile_completed } = data;
+
+                setTasks(prev => prev.map(task => ({
+                    ...task,
+                    completed: taskStatus[task.id] || false
+                })));
+
+                // Always update user in localStorage with current completion status
+                const userData = localStorage.getItem('user');
+                if (userData) {
+                    const parsedUser = JSON.parse(userData);
+                    parsedUser.profile_completed = profile_completed;
+                    localStorage.setItem('user', JSON.stringify(parsedUser));
+                    setUser(parsedUser);
+                }
+
+                // Only show toast if explicitly requested (when user clicks button)
+                if (showToastMessage) {
+                    if (profile_completed) {
+                        setToastMessage('🎉 Congratulations! Your profile is complete! You can now list unlimited items.');
+                        setToastType('success');
+                        setShowToast(true);
+                    } else {
+                        setToastMessage('Keep going! Complete the remaining tasks to unlock unlimited listings.');
+                        setToastType('info');
+                        setShowToast(true);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error checking profile completion:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleComplete = async () => {
+        await checkProfileCompletion(true); // Show toast when user clicks button
+    };
 
     const completedTasks = tasks.filter(t => t.completed).length;
     const totalTasks = tasks.length;
     const completionPercentage = Math.round((completedTasks / totalTasks) * 100);
-    const earnedPoints = tasks.filter(t => t.completed).reduce((sum, t) => sum + t.points, 0);
-    const totalPoints = tasks.reduce((sum, t) => sum + t.points, 0);
 
-    if (!user) {
+    if (!user || loading) {
         return (
             <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
@@ -134,15 +187,16 @@ const ProfileCompletionPage = () => {
                     </div>
 
                     {/* Progress Card */}
-                    <div className="mb-8 p-8 bg-gradient-to-r from-blue-600/20 to-emerald-600/20 border border-blue-500/30 rounded-2xl">
+                    <div
+                        className="mb-8 p-8 glass-card-gradient rounded-2xl transition-all duration-300"
+                        style={{
+                            backdropFilter: `blur(${Math.min(20 + scrollY * 0.05, 40)}px)`
+                        }}
+                    >
                         <div className="flex items-center justify-between mb-4">
                             <div>
                                 <h2 className="text-3xl font-bold mb-1">{completionPercentage}% Complete</h2>
                                 <p className="text-gray-300">{completedTasks} of {totalTasks} tasks completed</p>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-3xl font-bold text-yellow-400">{earnedPoints}</p>
-                                <p className="text-sm text-gray-300">of {totalPoints} points</p>
                             </div>
                         </div>
 
@@ -156,35 +210,41 @@ const ProfileCompletionPage = () => {
                     </div>
 
                     {/* Benefits */}
-                    <div className="mb-8 p-6 bg-slate-900/50 backdrop-blur-xl border border-blue-500/20 rounded-2xl">
+                    <div
+                        className="mb-8 p-6 glass-card rounded-2xl transition-all duration-300"
+                        style={{
+                            background: `rgba(15, 23, 42, ${Math.min(0.6 + scrollY * 0.001, 0.9)})`,
+                            backdropFilter: `blur(${Math.min(20 + scrollY * 0.05, 40)}px)`
+                        }}
+                    >
                         <h3 className="text-xl font-bold mb-4">Why Complete Your Profile?</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="flex items-start space-x-3">
                                 <CheckCircle className="w-6 h-6 text-emerald-400 flex-shrink-0 mt-1" />
                                 <div>
+                                    <h4 className="font-semibold mb-1">List More Items</h4>
+                                    <p className="text-sm text-gray-400">Unlock unlimited listings</p>
+                                </div>
+                            </div>
+                            <div className="flex items-start space-x-3">
+                                <CheckCircle className="w-6 h-6 text-emerald-400 flex-shrink-0 mt-1" />
+                                <div>
                                     <h4 className="font-semibold mb-1">Build Trust</h4>
-                                    <p className="text-sm text-gray-400">Verified profiles get more responses</p>
+                                    <p className="text-sm text-gray-400">Complete profiles get more responses</p>
                                 </div>
                             </div>
                             <div className="flex items-start space-x-3">
                                 <CheckCircle className="w-6 h-6 text-emerald-400 flex-shrink-0 mt-1" />
                                 <div>
-                                    <h4 className="font-semibold mb-1">Earn Points</h4>
-                                    <p className="text-sm text-gray-400">Redeem for premium features</p>
+                                    <h4 className="font-semibold mb-1">Better Meetups</h4>
+                                    <p className="text-sm text-gray-400">Address helps with location planning</p>
                                 </div>
                             </div>
                             <div className="flex items-start space-x-3">
                                 <CheckCircle className="w-6 h-6 text-emerald-400 flex-shrink-0 mt-1" />
                                 <div>
-                                    <h4 className="font-semibold mb-1">Better Matches</h4>
-                                    <p className="text-sm text-gray-400">Connect with nearby students</p>
-                                </div>
-                            </div>
-                            <div className="flex items-start space-x-3">
-                                <CheckCircle className="w-6 h-6 text-emerald-400 flex-shrink-0 mt-1" />
-                                <div>
-                                    <h4 className="font-semibold mb-1">Unlock Features</h4>
-                                    <p className="text-sm text-gray-400">Access advanced marketplace tools</p>
+                                    <h4 className="font-semibold mb-1">Full Access</h4>
+                                    <p className="text-sm text-gray-400">Use all marketplace features</p>
                                 </div>
                             </div>
                         </div>
@@ -198,10 +258,16 @@ const ProfileCompletionPage = () => {
                             return (
                                 <div
                                     key={task.id}
-                                    className={`p-6 bg-slate-900/50 backdrop-blur-xl border rounded-2xl transition-all ${task.completed
-                                        ? 'border-emerald-500/30 bg-emerald-500/5'
-                                        : 'border-blue-500/20 hover:border-blue-500/50'
+                                    className={`p-6 rounded-2xl transition-all ${task.completed
+                                        ? 'glass-card-success'
+                                        : 'glass-card hover:glass-card-hover'
                                         }`}
+                                    style={{
+                                        background: task.completed
+                                            ? `rgba(16, 185, 129, ${Math.min(0.1 + scrollY * 0.0005, 0.3)})`
+                                            : `rgba(15, 23, 42, ${Math.min(0.6 + scrollY * 0.001, 0.9)})`,
+                                        backdropFilter: `blur(${Math.min(20 + scrollY * 0.05, 40)}px)`
+                                    }}
                                 >
                                     <div className="flex items-start justify-between">
                                         <div className="flex items-start space-x-4 flex-1">
@@ -221,21 +287,32 @@ const ProfileCompletionPage = () => {
                                                     )}
                                                 </div>
                                                 <p className="text-sm text-gray-400 mb-3">{task.description}</p>
-                                                <div className="flex items-center space-x-4">
-                                                    <span className="text-sm text-yellow-400 font-semibold">
-                                                        +{task.points} points
+                                                {task.completed && (
+                                                    <span className="px-3 py-1 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs rounded-full">
+                                                        Completed
                                                     </span>
-                                                    {task.completed && (
-                                                        <span className="px-3 py-1 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs rounded-full">
-                                                            Completed
-                                                        </span>
-                                                    )}
-                                                </div>
+                                                )}
                                             </div>
                                         </div>
-                                        {!task.completed && (
-                                            <button className="px-4 py-2 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-lg hover:shadow-lg hover:shadow-blue-500/50 transition-all text-sm font-medium">
-                                                Complete
+                                        {!task.completed && task.id === 'profile_picture' && (
+                                            <button
+                                                onClick={() => navigate('/profile')}
+                                                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-lg hover:shadow-lg hover:shadow-blue-500/50 transition-all text-sm font-medium">
+                                                Go to Profile
+                                            </button>
+                                        )}
+                                        {!task.completed && task.id === 'address' && (
+                                            <button
+                                                onClick={() => navigate('/profile')}
+                                                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-lg hover:shadow-lg hover:shadow-blue-500/50 transition-all text-sm font-medium">
+                                                Go to Profile
+                                            </button>
+                                        )}
+                                        {!task.completed && task.id === 'first_listing' && (
+                                            <button
+                                                onClick={() => navigate('/list-item')}
+                                                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-lg hover:shadow-lg hover:shadow-blue-500/50 transition-all text-sm font-medium">
+                                                List Item
                                             </button>
                                         )}
                                     </div>
@@ -244,21 +321,28 @@ const ProfileCompletionPage = () => {
                         })}
                     </div>
 
-                    {/* Completion Reward */}
-                    {completionPercentage === 100 && (
-                        <div className="mt-8 p-8 bg-gradient-to-r from-yellow-600/20 to-orange-600/20 border border-yellow-500/30 rounded-2xl text-center">
-                            <div className="text-6xl mb-4">🎉</div>
-                            <h2 className="text-3xl font-bold mb-2">Profile Complete!</h2>
-                            <p className="text-gray-300 mb-4">
-                                Congratulations! You've earned {totalPoints} points and unlocked all features.
-                            </p>
-                            <button className="px-8 py-3 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-lg hover:shadow-lg hover:shadow-yellow-500/50 transition-all font-bold">
-                                Claim Bonus Reward
-                            </button>
-                        </div>
-                    )}
+                    {/* Complete Button */}
+                    <div className="mt-8 text-center">
+                        <button
+                            onClick={handleComplete}
+                            className="px-8 py-3 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-lg hover:shadow-lg hover:shadow-blue-500/50 transition-all font-bold text-lg">
+                            Check Completion Status
+                        </button>
+                        <p className="text-sm text-gray-400 mt-3">
+                            Click to verify if you've completed all requirements
+                        </p>
+                    </div>
                 </div>
             </div>
+
+            {/* Toast Notification */}
+            {showToast && (
+                <Toast
+                    message={toastMessage}
+                    type={toastType}
+                    onClose={() => setShowToast(false)}
+                />
+            )}
         </div>
     );
 };
