@@ -91,7 +91,7 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
     const accessToken = localStorage.getItem('access_token');
     if (!accessToken) throw new Error("No access token");
 
-    const response = await fetch('http://localhost:5000/api/user/dashboard', {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/user/dashboard`, {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${accessToken}`,
@@ -153,7 +153,7 @@ const DashboardPage = () => {
             if (!token) return;
 
             try {
-                const response = await fetch('http://localhost:5000/api/user/profile/completion', {
+                const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/user/profile/completion`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 const data = await response.json();
@@ -209,7 +209,7 @@ const DashboardPage = () => {
             if (!token) return;
 
             try {
-                const response = await fetch('http://localhost:5000/api/friends/list', {
+                const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/friends/list`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 const data = await response.json();

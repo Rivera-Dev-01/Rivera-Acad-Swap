@@ -54,7 +54,7 @@ const NavigationMenu = ({ user, onLogout }: NavigationMenuProps) => {
             if (!token) return;
 
             try {
-                const response = await fetch('http://localhost:5000/api/user/profile/completion', {
+                const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/user/profile/completion`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 const data = await response.json();
@@ -88,7 +88,7 @@ const NavigationMenu = ({ user, onLogout }: NavigationMenuProps) => {
         if (!token) return;
 
         try {
-            const response = await fetch('http://localhost:5000/api/notifications', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/notifications`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             const data = await response.json();
@@ -106,7 +106,7 @@ const NavigationMenu = ({ user, onLogout }: NavigationMenuProps) => {
         if (!token) return;
 
         try {
-            const response = await fetch('http://localhost:5000/api/notifications/mark-read', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/notifications/mark-read`, {
                 method: 'PUT',
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -140,7 +140,7 @@ const NavigationMenu = ({ user, onLogout }: NavigationMenuProps) => {
         if (!token) return;
 
         try {
-            const response = await fetch(`http://localhost:5000/api/notifications/${notificationId}/read`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/notifications/${notificationId}/read`, {
                 method: 'PUT',
                 headers: { Authorization: `Bearer ${token}` }
             });
