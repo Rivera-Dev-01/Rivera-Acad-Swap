@@ -101,17 +101,32 @@ const FindUsersPage = () => {
 
     if (!currentUser) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
+            <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 flex items-center justify-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 relative overflow-hidden">
+            {/* Animated Background */}
+            <div className="fixed inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950"></div>
+                <svg className="absolute inset-0 w-full h-full opacity-20">
+                    <defs>
+                        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(59, 130, 246, 0.3)" strokeWidth="1" />
+                        </pattern>
+                    </defs>
+                    <rect width="100%" height="100%" fill="url(#grid)" />
+                </svg>
+                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-blob"></div>
+                <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
+            </div>
+
             <NavigationMenu user={currentUser} onLogout={handleLogout} />
 
-            <div className="pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+            <div className="relative pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
                 {/* Header */}
                 <div className={`glass-card rounded-2xl p-6 mb-6 transition-all duration-300 ${scrolled ? 'bg-opacity-90 backdrop-blur-[40px]' : ''
                     }`}>
@@ -223,8 +238,7 @@ const FindUsersPage = () => {
                                 <div
                                     key={user.id}
                                     onClick={() => navigate(`/user/${user.id}`)}
-                                    className={`glass-card glass-card-hover rounded-xl p-6 cursor-pointer transition-all ${scrolled ? 'bg-opacity-90 backdrop-blur-[40px]' : ''
-                                        }`}
+                                    className="glass-card glass-card-hover rounded-xl p-6 cursor-pointer transition-all hover:scale-105"
                                 >
                                     <div className="flex flex-col items-center text-center">
                                         <ProfileAvatar
