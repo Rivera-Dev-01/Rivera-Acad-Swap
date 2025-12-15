@@ -70,7 +70,7 @@ const MyListingsPage = () => {
             const token = localStorage.getItem('sb-access-token') || localStorage.getItem('access_token');
             if (!token) return;
 
-            const response = await fetch('http://localhost:5000/items/user/me', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/items/user/me`, {
                 method: 'GET',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -94,7 +94,7 @@ const MyListingsPage = () => {
             const token = localStorage.getItem('sb-access-token') || localStorage.getItem('access_token');
             if (!token) return;
 
-            const response = await fetch(`http://localhost:5000/items/${itemId}`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/items/${itemId}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -233,7 +233,7 @@ const MyListingsPage = () => {
             console.log('Sending update payload:', payload); // DEBUG
 
             // D. Send PUT Request
-            const response = await fetch(`http://localhost:5000/items/${editingItem.id}`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/items/${editingItem.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

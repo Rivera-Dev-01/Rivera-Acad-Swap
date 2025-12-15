@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { MessageSquare, ThumbsUp, Plus, Search, X, Trash2, Send } from 'lucide-react';
 import NavigationMenu from '../components/NavigationMenu';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 interface Reply {
     id: string;
     request_id: string;
@@ -64,7 +66,7 @@ const RequestBoardPage = () => {
             setIsLoading(true);
 
             try {
-                console.log('Fetching requests from:', 'http://localhost:5000/api/board/request');
+                console.log('Fetching requests from:', `${API_URL}/api/board/request`);
 
                 // Include auth token if available
                 const token = localStorage.getItem('sb-access-token') || localStorage.getItem('access_token');
@@ -73,7 +75,7 @@ const RequestBoardPage = () => {
                     headers['Authorization'] = `Bearer ${token}`;
                 }
 
-                const response = await fetch('http://localhost:5000/api/board/request', { headers });
+                const response = await fetch(`${API_URL}/api/board/request`, { headers });
                 console.log('Response status:', response.status);
 
                 const result = await response.json();
@@ -107,7 +109,7 @@ const RequestBoardPage = () => {
         try {
             const token = localStorage.getItem('sb-access-token') || localStorage.getItem('access_token');
 
-            const response = await fetch('http://localhost:5000/api/board/requests', {
+            const response = await fetch(`${API_URL}/api/board/requests`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -156,7 +158,7 @@ const RequestBoardPage = () => {
         try {
             const token = localStorage.getItem('sb-access-token') || localStorage.getItem('access_token');
 
-            const response = await fetch(`http://localhost:5000/api/board/requests/${postId}`, {
+            const response = await fetch(`${API_URL}/api/board/requests/${postId}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -180,7 +182,7 @@ const RequestBoardPage = () => {
         try {
             const token = localStorage.getItem('sb-access-token') || localStorage.getItem('access_token');
 
-            const response = await fetch(`http://localhost:5000/api/board/requests/${postId}/like`, {
+            const response = await fetch(`${API_URL}/api/board/requests/${postId}/like`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -213,7 +215,7 @@ const RequestBoardPage = () => {
         if (!isExpanded) {
             // Fetch replies when expanding
             try {
-                const response = await fetch(`http://localhost:5000/api/board/requests/${postId}/replies`);
+                const response = await fetch(`${API_URL}/api/board/requests/${postId}/replies`);
                 const result = await response.json();
 
                 if (result.success && result.data) {
@@ -285,7 +287,7 @@ const RequestBoardPage = () => {
         setReplyContent({ ...replyContent, [postId]: '' });
 
         try {
-            const response = await fetch(`http://localhost:5000/api/board/requests/${postId}/replies`, {
+            const response = await fetch(`${API_URL}/api/board/requests/${postId}/replies`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -362,7 +364,7 @@ const RequestBoardPage = () => {
         try {
             const token = localStorage.getItem('sb-access-token') || localStorage.getItem('access_token');
 
-            const response = await fetch(`http://localhost:5000/api/board/requests/${postId}/replies/${replyId}`, {
+            const response = await fetch(`${API_URL}/api/board/requests/${postId}/replies/${replyId}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`

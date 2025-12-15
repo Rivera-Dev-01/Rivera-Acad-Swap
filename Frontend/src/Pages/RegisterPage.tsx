@@ -25,7 +25,7 @@ const RegisterPage: React.FC = () => {
         if (refCode) {
             setReferralCode(refCode);
             // Validate referral code
-            fetch(`http://localhost:5000/api/referral/validate/${refCode}`)
+            fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/referral/validate/${refCode}`)
                 .then(res => res.json())
                 .then(data => {
                     setReferralValid(data.valid);
@@ -159,7 +159,7 @@ const RegisterPage: React.FC = () => {
                 requestBody.referralCode = referralCode;
             }
 
-            const response = await fetch('http://localhost:5000/api/auth/register', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/register`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

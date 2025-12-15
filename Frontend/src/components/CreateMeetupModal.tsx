@@ -71,7 +71,7 @@ const CreateMeetupModal = ({ user, onClose, onSuccess }: CreateMeetupModalProps)
     const fetchUserItems = async () => {
         try {
             const token = localStorage.getItem('sb-access-token') || localStorage.getItem('access_token');
-            const response = await fetch('http://localhost:5000/items/user/me', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/items/user/me`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -172,7 +172,7 @@ const CreateMeetupModal = ({ user, onClose, onSuccess }: CreateMeetupModalProps)
 
         try {
             const token = localStorage.getItem('sb-access-token') || localStorage.getItem('access_token');
-            const response = await fetch('http://localhost:5000/api/meetup/create', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/meetup/create`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
