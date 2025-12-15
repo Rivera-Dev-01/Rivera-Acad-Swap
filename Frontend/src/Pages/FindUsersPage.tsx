@@ -108,8 +108,8 @@ const FindUsersPage = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 relative overflow-hidden">
-            {/* Animated Background */}
+        <div className="min-h-screen bg-slate-950 text-white overflow-hidden relative">
+            {/* Animated Grid Background */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950"></div>
                 <svg className="absolute inset-0 w-full h-full opacity-20">
@@ -122,17 +122,18 @@ const FindUsersPage = () => {
                 </svg>
                 <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-blob"></div>
                 <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
+                <div className="absolute bottom-1/4 left-1/3 w-96 h-96 bg-teal-500/20 rounded-full blur-3xl animate-blob animation-delay-4000"></div>
             </div>
 
             <NavigationMenu user={currentUser} onLogout={handleLogout} />
 
-            <div className="relative pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-                {/* Header */}
-                <div className={`glass-card rounded-2xl p-6 mb-6 transition-all duration-300 ${scrolled ? 'bg-opacity-90 backdrop-blur-[40px]' : ''
-                    }`}>
-                    <div className="flex items-center justify-between mb-6">
+            <div className="relative pt-20 pb-12 px-4">
+                <div className="max-w-7xl mx-auto">
+                    {/* Header */}
+                    <div className="bg-slate-900/50 backdrop-blur-xl border-2 border-slate-800 rounded-2xl p-6 mb-6 transition-all duration-300"
+                        <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center space-x-3">
-                            <div className="w-12 h-12 bg-gradient-to-br from-teal-500 to-blue-500 rounded-xl flex items-center justify-center">
+                            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-xl flex items-center justify-center">
                                 <UsersIcon className="w-6 h-6" />
                             </div>
                             <div>
@@ -142,7 +143,7 @@ const FindUsersPage = () => {
                         </div>
 
                         {/* View Toggle */}
-                        <div className="flex items-center space-x-2 glass-card rounded-lg p-1">
+                        <div className="flex items-center space-x-2 bg-slate-800/50 rounded-lg p-1">
                             <button
                                 onClick={() => setViewMode('grid')}
                                 className={`p-2 rounded transition-all ${viewMode === 'grid'
@@ -172,7 +173,7 @@ const FindUsersPage = () => {
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Search by name or email..."
-                            className="w-full pl-12 pr-4 py-3 glass-input rounded-xl text-white placeholder-gray-400"
+                            className="w-full pl-12 pr-4 py-3 bg-slate-900/50 backdrop-blur-xl border-2 border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-white placeholder-gray-500"
                         />
                     </div>
 
@@ -193,7 +194,7 @@ const FindUsersPage = () => {
                                 <select
                                     value={courseFilter}
                                     onChange={(e) => setCourseFilter(e.target.value)}
-                                    className="w-full px-4 py-2 glass-input rounded-lg text-white"
+                                    className="w-full px-4 py-2 bg-slate-900/50 backdrop-blur-xl border-2 border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-white"
                                 >
                                     <option value="">All Courses</option>
                                     <option value="Computer Science">Computer Science</option>
@@ -208,7 +209,7 @@ const FindUsersPage = () => {
                                 <select
                                     value={yearFilter}
                                     onChange={(e) => setYearFilter(e.target.value)}
-                                    className="w-full px-4 py-2 glass-input rounded-lg text-white"
+                                    className="w-full px-4 py-2 bg-slate-900/50 backdrop-blur-xl border-2 border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-white"
                                 >
                                     <option value="">All Years</option>
                                     <option value="1st Year">1st Year</option>
@@ -222,14 +223,23 @@ const FindUsersPage = () => {
                 </div>
 
                 {/* Results Count */}
-                <div className="mb-4 text-gray-400">
-                    {loading ? 'Searching...' : `${users.length} user${users.length !== 1 ? 's' : ''} found`}
+                <div className="mb-6">
+                    <p className="text-gray-400">
+                        {loading ? 'Searching...' : (
+                            <>
+                                <span className="text-white font-semibold">{users.length}</span> user{users.length !== 1 ? 's' : ''} found
+                            </>
+                        )}
+                    </p>
                 </div>
 
                 {/* User Results */}
                 {loading ? (
                     <div className="flex items-center justify-center py-20">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+                        <div className="text-center">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                            <p className="text-gray-400">Searching users...</p>
+                        </div>
                     </div>
                 ) : users.length > 0 ? (
                     viewMode === 'grid' ? (
@@ -238,7 +248,7 @@ const FindUsersPage = () => {
                                 <div
                                     key={user.id}
                                     onClick={() => navigate(`/user/${user.id}`)}
-                                    className="glass-card glass-card-hover rounded-xl p-6 cursor-pointer transition-all hover:scale-105"
+                                    className="bg-slate-900/50 backdrop-blur-xl border-2 border-slate-800 rounded-2xl p-6 cursor-pointer hover:border-blue-500 transition-all hover:scale-[1.02] hover:shadow-2xl hover:shadow-blue-500/20"
                                 >
                                     <div className="flex flex-col items-center text-center">
                                         <ProfileAvatar
@@ -339,7 +349,7 @@ const FindUsersPage = () => {
                         </div>
                     )
                 ) : (
-                    <div className="glass-card rounded-xl p-12 text-center">
+                    <div className="bg-slate-900/50 backdrop-blur-xl border-2 border-slate-800 rounded-2xl p-12 text-center">
                         <UsersIcon className="w-16 h-16 mx-auto mb-4 text-gray-600" />
                         <p className="text-gray-400 text-lg">No users found</p>
                         <p className="text-gray-500 text-sm mt-2">Try adjusting your search or filters</p>
@@ -347,6 +357,7 @@ const FindUsersPage = () => {
                 )}
             </div>
         </div>
+        </div >
     );
 };
 
