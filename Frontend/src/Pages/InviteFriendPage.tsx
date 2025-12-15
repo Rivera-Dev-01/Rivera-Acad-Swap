@@ -108,16 +108,16 @@ const InviteFriendPage: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-                <div className="text-white">Loading...</div>
+            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white">
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white">
             <NavigationMenu user={user} onLogout={handleLogout} />
-            <div className="max-w-6xl mx-auto p-6">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
                 {/* Header */}
                 <div className="mb-8">
                     <h1 className="text-4xl font-bold mb-2">
@@ -127,7 +127,7 @@ const InviteFriendPage: React.FC = () => {
                 </div>
 
                 {/* Referral Card */}
-                <div className="bg-gradient-to-br from-blue-600/20 to-emerald-600/20 border border-blue-500/30 rounded-2xl p-8 mb-8">
+                <div className="glass-card rounded-2xl p-6 sm:p-8 mb-8 border border-blue-500/30">
                     <div className="flex items-center space-x-3 mb-6">
                         <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-full flex items-center justify-center">
                             <Gift className="w-6 h-6" />
@@ -186,9 +186,9 @@ const InviteFriendPage: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Your Stats */}
-                    <div className="bg-slate-900/50 border border-blue-500/20 rounded-2xl p-6">
+                    <div className="glass-card rounded-2xl p-6 border border-blue-500/20">
                         <div className="flex items-center space-x-3 mb-6">
                             <Users className="w-6 h-6 text-blue-400" />
                             <h3 className="text-xl font-bold">Your Referral Stats</h3>
@@ -228,7 +228,7 @@ const InviteFriendPage: React.FC = () => {
                     </div>
 
                     {/* Leaderboard */}
-                    <div className="bg-slate-900/50 border border-blue-500/20 rounded-2xl p-6">
+                    <div className="glass-card rounded-2xl p-6 border border-blue-500/20">
                         <div className="flex items-center space-x-3 mb-6">
                             <Trophy className="w-6 h-6 text-yellow-400" />
                             <h3 className="text-xl font-bold">Top Referrers</h3>
@@ -280,7 +280,7 @@ const InviteFriendPage: React.FC = () => {
                 </div>
 
                 {/* How it Works */}
-                <div className="mt-8 bg-slate-900/50 border border-blue-500/20 rounded-2xl p-6">
+                <div className="mt-6 glass-card rounded-2xl p-6 border border-blue-500/20">
                     <h3 className="text-xl font-bold mb-4">How It Works</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="text-center">
