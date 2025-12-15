@@ -74,7 +74,7 @@ const MarketplacePage = () => {
             setError(null);
 
             try {
-                const response = await fetch('http://localhost:5000/api/marketplace/items');
+                const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/marketplace/items`);
                 const result = await response.json();
 
                 if (result.success && result.data) {
@@ -127,7 +127,7 @@ const MarketplacePage = () => {
 
         try {
             const token = localStorage.getItem('access_token');
-            const response = await fetch(`http://localhost:5000/items/${selectedItem.id}/mark-sold`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/items/${selectedItem.id}/mark-sold`, {
                 method: 'PATCH',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -142,7 +142,7 @@ const MarketplacePage = () => {
                 setShowItemModal(false);
                 setSelectedItem(null);
                 // Refresh the items list
-                const refreshResponse = await fetch('http://localhost:5000/api/marketplace/items');
+                const refreshResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/marketplace/items`);
                 const refreshResult = await refreshResponse.json();
                 if (refreshResult.success && refreshResult.data) {
                     setItems(refreshResult.data);
@@ -161,7 +161,7 @@ const MarketplacePage = () => {
 
         try {
             const token = localStorage.getItem('access_token');
-            const response = await fetch('http://localhost:5000/api/offer/create', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/offer/create`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,

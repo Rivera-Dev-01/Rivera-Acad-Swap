@@ -63,7 +63,7 @@ const InviteFriendPage: React.FC = () => {
                 setLoading(false);
                 return;
             }
-            const response = await fetch('http://localhost:5000/api/referral/stats', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/referral/stats`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -86,7 +86,7 @@ const InviteFriendPage: React.FC = () => {
                 console.error('No access token found');
                 return;
             }
-            const response = await fetch('http://localhost:5000/api/referral/leaderboard?limit=10', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/referral/leaderboard?limit=10`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
