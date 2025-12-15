@@ -8,6 +8,8 @@ import { API_BASE as API_URL } from '../config/constants';
 const ProfilePage = () => {
     const navigate = useNavigate();
     const [user, setUser] = useState<any>(null);
+    const [friends, setFriends] = useState<any[]>([]);
+    const [loadingFriends, setLoadingFriends] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -28,6 +30,7 @@ const ProfilePage = () => {
 
     useEffect(() => {
         fetchProfile();
+        fetchFriends();
 
         // Restore scroll position on page load
         const savedScrollY = sessionStorage.getItem('profileScrollY');
@@ -47,6 +50,26 @@ const ProfilePage = () => {
         window.addEventListener('scroll', handleScroll, { passive: true });
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
+
+    const fetchFriends = async () => {
+        setLoadingFriends(true);
+        const token = localStorage.getItem('access_token');
+        if (!token) return;
+
+        try {
+            const response = await fetch(`${API_URL}/friends/list`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const data = await response.json();
+            if (data.success) {
+                setFriends(data.friends || []);
+            }
+        } catch (error) {
+            console.error('Error fetching friends:', error);
+        } finally {
+            setLoadingFriends(false);
+        }
+    };
 
     const fetchProfile = async () => {
         const token = localStorage.getItem('access_token');
@@ -489,7 +512,7 @@ const ProfilePage = () => {
                         </div>
                     </div>
 
-                    {/* Friends/Mutual Section */}
+                    {/* Friends Section */}
                     <div
                         className="p-8 glass-card rounded-2xl transition-all duration-300"
                         style={{
@@ -497,14 +520,66 @@ const ProfilePage = () => {
                             backdropFilter: `blur(${Math.min(20 + scrollY * 0.05, 40)}px)`
                         }}
                     >
-                        <div className="flex items-center space-x-3 mb-6">
-                            <Users className="w-6 h-6 text-blue-400" />
-                            <h2 className="text-2xl font-bold">Friends & Connections</h2>
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center space-x-3">
+                                <Users className="w-6 h-6 text-blue-400" />
+                                <h2 className="text-2xl font-bold">Friends</h2>
+                                <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-sm">
+                                    {friends.length}
+                                </span>
+                            </div>
+                            <button
+                                onClick={() => navigate('/find-users')}
+                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors text-sm"
+                            >
+                                Find Friends
+                            </button>
                         </div>
-                        <div className="text-center py-12 text-gray-400">
-                            <Users className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                            <p>Friends feature coming soon!</p>
-                        </div>
+
+                        {loadingFriends ? (
+                            <div className="flex items-center justify-center py-12">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                            </div>
+                        ) : friends.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {friends.map((friend) => (
+                                    <div
+                                        key={friend.id}
+                                        onClick={() => navigate(`/user/${friend.id}`)}
+                                        className="p-4 bg-slate-800/50 hover:bg-slate-800 rounded-xl cursor-pointer transition-all hover:scale-105"
+                                    >
+                                        <div className="flex items-center space-x-3">
+                                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 p-0.5 flex-shrink-0">
+                                                <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center overflow-hidden">
+                                                    {friend.profile_picture ? (
+                                                        <img src={friend.profile_picture} alt={friend.name} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <span className="text-sm font-bold">
+                                                            {friend.name?.charAt(0) || '?'}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-semibold truncate">{friend.name}</p>
+                                                <p className="text-sm text-gray-400 truncate">{friend.course || 'Student'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-12 text-gray-400">
+                                <Users className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                                <p className="mb-4">No friends yet</p>
+                                <button
+                                    onClick={() => navigate('/find-users')}
+                                    className="px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                                >
+                                    Find Friends
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
