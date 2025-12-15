@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import NavigationMenu from '../components/NavigationMenu';
 import Toast from '../components/Toast';
 import { MessageCircle, Send, AlertTriangle } from 'lucide-react';
-
-const API_URL = 'http://localhost:5000/api';
+import { API_BASE as API_URL } from '../config/constants';
 
 const FeedbackPage = () => {
     const navigate = useNavigate();

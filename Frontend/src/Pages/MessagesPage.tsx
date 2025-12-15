@@ -5,8 +5,7 @@ import NavigationMenu from '../components/NavigationMenu';
 import ProfileAvatar from '../components/ProfileAvatar';
 import Toast from '../components/Toast';
 import { useRealtimeMessages } from '../hooks/useRealtimeData';
-
-const API_URL = 'http://localhost:5000/api';
+import { API_BASE as API_URL } from '../config/constants';
 
 interface Conversation {
     other_user_id: string;

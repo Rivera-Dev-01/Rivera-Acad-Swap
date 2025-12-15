@@ -6,8 +6,7 @@ import ProfileAvatar from '../components/ProfileAvatar';
 import Toast from '../components/Toast';
 import { useRealtimeFriendRequests } from '../hooks/useRealtimeData';
 import { useOptimisticUpdate } from '../hooks/useOptimisticUpdate';
-
-const API_URL = 'http://localhost:5000/api';
+import { API_BASE as API_URL } from '../config/constants';
 
 interface FriendRequest {
     id: string;

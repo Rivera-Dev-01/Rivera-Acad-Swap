@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Search, Users as UsersIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ProfileAvatar from './ProfileAvatar';
-
-const API_URL = 'http://localhost:5000/api';
+import { API_BASE as API_URL } from '../config/constants';
 
 interface User {
     id: string;

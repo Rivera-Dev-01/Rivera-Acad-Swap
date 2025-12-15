@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Camera, Mail, Phone, MapPin, BookOpen, Calendar, Users, Award, Edit2, Save, X } from 'lucide-react';
 import NavigationMenu from '../components/NavigationMenu';
 import Toast from '../components/Toast';
-
-const API_URL = 'http://localhost:5000/api';
+import { API_BASE as API_URL } from '../config/constants';
 
 const ProfilePage = () => {
     const navigate = useNavigate();

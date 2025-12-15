@@ -4,8 +4,7 @@ import { MessageCircle, Clock, Check, X, Send, ArrowLeft, Package } from 'lucide
 import NavigationMenu from '../components/NavigationMenu';
 import ProfileAvatar from '../components/ProfileAvatar';
 import Toast from '../components/Toast';
-
-const API_URL = 'http://localhost:5000/api';
+import { API_BASE as API_URL } from '../config/constants';
 
 // Custom Peso Icon Component
 const PesoIcon = ({ className }: { className?: string }) => (

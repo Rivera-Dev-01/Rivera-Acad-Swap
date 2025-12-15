@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Users as UsersIcon, Grid, List, Filter } from 'lucide-react';
 import NavigationMenu from '../components/NavigationMenu';
 import ProfileAvatar from '../components/ProfileAvatar';
-
-const API_URL = 'http://localhost:5000/api';
+import { API_BASE as API_URL } from '../config/constants';
 
 interface User {
     id: string;

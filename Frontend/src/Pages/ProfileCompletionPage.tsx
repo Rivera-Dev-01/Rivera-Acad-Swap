@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { CheckCircle, Circle, Camera, MapPin, ShoppingBag } from 'lucide-react';
 import NavigationMenu from '../components/NavigationMenu';
 import Toast from '../components/Toast';
-
-const API_URL = 'http://localhost:5000/api';
+import { API_BASE as API_URL } from '../config/constants';
 
 interface ProfileTask {
     id: string;

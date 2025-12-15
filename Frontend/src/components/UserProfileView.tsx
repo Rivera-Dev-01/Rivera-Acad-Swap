@@ -3,8 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Camera, Mail, Phone, MapPin, BookOpen, Calendar, Award, UserPlus, ArrowLeft, Check, Clock, UserX } from 'lucide-react';
 import NavigationMenu from './NavigationMenu';
 import Toast from './Toast';
-
-const API_URL = 'http://localhost:5000/api';
+import { API_BASE as API_URL } from '../config/constants';
 
 const UserProfileView = () => {
     const { userId } = useParams();
