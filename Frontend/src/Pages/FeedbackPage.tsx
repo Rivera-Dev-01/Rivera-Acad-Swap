@@ -8,7 +8,7 @@ const API_URL = 'http://localhost:5000/api';
 
 const FeedbackPage = () => {
     const navigate = useNavigate();
-    const [user, setUser] = useState<any>(() => {
+    const [user] = useState<any>(() => {
         const data = localStorage.getItem('user');
         return data ? JSON.parse(data) : null;
     });

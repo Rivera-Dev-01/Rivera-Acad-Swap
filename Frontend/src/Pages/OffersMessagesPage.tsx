@@ -83,7 +83,7 @@ const OffersMessagesPage = () => {
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     const [scrolled, setScrolled] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    // const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     // Auto-scroll to bottom of messages
     const scrollToBottom = useCallback(() => {
