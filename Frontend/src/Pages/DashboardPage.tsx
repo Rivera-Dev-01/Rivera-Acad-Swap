@@ -183,8 +183,11 @@ const DashboardPage = () => {
     } = useQuery({
         queryKey: ['dashboardStats', user?.id], // Include user ID to prevent cache collision
         queryFn: fetchDashboardStats,
-        staleTime: 0,     // Always refetch on mount to ensure fresh data
-        gcTime: 0,        // Don't cache data to prevent showing wrong user's data (renamed from cacheTime in v5)
+        // Cache behaviour:
+        // - Show cached data instantly when you revisit the dashboard (no spinner)
+        // - Treat data as "fresh" for 60s, then quietly refetch when needed
+        staleTime: 60_000,      // 60 seconds
+        gcTime: 5 * 60_000,     // 5 minutes in memory
         retry: 1,
         enabled: !!user // Only run query when user is loaded
     });
@@ -202,7 +205,7 @@ const DashboardPage = () => {
 
     useEffect(() => {
         const fetchFriendsCount = async () => {
-            const token = localStorage.getItem('access_token');
+            const token = localStorage.getItem('access_token') || localStorage.getItem('sb-access-token');
             if (!token) return;
 
             try {

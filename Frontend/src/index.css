@@ -6,8 +6,8 @@
    PERFORMANCE OPTIMIZATIONS
    ============================================ */
 
-/* Smooth scrolling for all elements */
-* {
+/* Smooth scrolling for main document only (avoid forcing on every element) */
+html {
   scroll-behavior: smooth;
 }
 
@@ -18,7 +18,7 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Optimize rendering performance with GPU acceleration */
+/* Optimize rendering performance with GPU acceleration (scoped to key UI shells) */
 .glass-card,
 .glass-card-hover,
 .glass-card-gradient,
@@ -34,18 +34,13 @@ body {
   -webkit-perspective: 1000px;
 }
 
-/* Optimize all transitions */
-* {
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Smooth transitions for interactive elements */
+/* Smooth transitions for interactive elements only (avoid global transitions) */
 button,
 a,
 input,
 textarea,
 select {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform;
   transform: translateZ(0);
 }
@@ -139,39 +134,40 @@ select {
 
 /* Glassmorphism Styles */
 .glass-card {
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(15, 23, 42, 0.8);
+  /* Lighter blur and shadow for better FPS, still glassy */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(59, 130, 246, 0.2);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  box-shadow: 0 6px 20px 0 rgba(0, 0, 0, 0.25);
 }
 
 .glass-card-hover:hover {
-  background: rgba(15, 23, 42, 0.7);
+  background: rgba(15, 23, 42, 0.9);
   border: 1px solid rgba(59, 130, 246, 0.4);
-  box-shadow: 0 8px 32px 0 rgba(59, 130, 246, 0.2);
+  box-shadow: 0 8px 28px 0 rgba(59, 130, 246, 0.18);
 }
 
 .glass-card-gradient {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(16, 185, 129, 0.15) 100%);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.16) 0%, rgba(16, 185, 129, 0.16) 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(59, 130, 246, 0.3);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  box-shadow: 0 7px 24px 0 rgba(0, 0, 0, 0.3);
 }
 
 .glass-card-success {
   background: rgba(16, 185, 129, 0.1);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(16, 185, 129, 0.3);
-  box-shadow: 0 8px 32px 0 rgba(16, 185, 129, 0.1);
+  box-shadow: 0 6px 20px 0 rgba(16, 185, 129, 0.16);
 }
 
 .glass-nav {
   background: rgba(2, 6, 23, 0.8);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(59, 130, 246, 0.2);
 }
 

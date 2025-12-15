@@ -18,7 +18,8 @@ import {
     LayoutDashboard,
     User,
     Search,
-    Users
+    Users,
+    AlertCircle
 } from 'lucide-react';
 import UserSearchModal from './UserSearchModal';
 import { useRealtimeNotifications } from '../hooks/useRealtimeData';
@@ -99,6 +100,61 @@ const NavigationMenu = ({ user, onLogout }: NavigationMenuProps) => {
         }
     };
 
+    // Mark all notifications as read
+    const markAllAsRead = async () => {
+        const token = localStorage.getItem('access_token');
+        if (!token) return;
+
+        try {
+            const response = await fetch('http://localhost:5000/api/notifications/mark-read', {
+                method: 'PUT',
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const data = await response.json();
+            if (data.success) {
+                setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+            }
+        } catch (error) {
+            console.error('Error marking all as read:', error);
+        }
+    };
+
+    // Clear all notifications (delete them)
+    const clearAllNotifications = async () => {
+        const token = localStorage.getItem('access_token');
+        if (!token) return;
+
+        try {
+            // Mark all as read first
+            await markAllAsRead();
+            // Then clear from UI
+            setNotifications([]);
+        } catch (error) {
+            console.error('Error clearing notifications:', error);
+        }
+    };
+
+    // Mark single notification as read
+    const markNotificationAsRead = async (notificationId: string) => {
+        const token = localStorage.getItem('access_token');
+        if (!token) return;
+
+        try {
+            const response = await fetch(`http://localhost:5000/api/notifications/${notificationId}/read`, {
+                method: 'PUT',
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const data = await response.json();
+            if (data.success) {
+                setNotifications(prev => prev.map(n =>
+                    n.id === notificationId ? { ...n, read: true } : n
+                ));
+            }
+        } catch (error) {
+            console.error('Error marking notification as read:', error);
+        }
+    };
+
     const unreadCount = notifications.filter(n => !n.read).length;
 
     const menuItems = [
@@ -113,7 +169,8 @@ const NavigationMenu = ({ user, onLogout }: NavigationMenuProps) => {
         { path: '/request-board', icon: MessageSquare, label: 'Request Board', color: 'text-cyan-400' },
         { path: '/meetup-scheduler', icon: Calendar, label: 'Meetup Scheduler', color: 'text-pink-400' },
         { path: '/invite-friend', icon: User, label: 'Invite a Friend', color: 'text-yellow-400', badge: '+15 pts' },
-        { path: '/profile-completion', icon: CheckCircle, label: 'Profile Completion', color: 'text-green-400', badge: `${profileCompletion}%` }
+        { path: '/profile-completion', icon: CheckCircle, label: 'Profile Completion', color: 'text-green-400', badge: `${profileCompletion}%` },
+        { path: '/feedback', icon: AlertCircle, label: 'Send Feedback', color: 'text-red-400' }
     ];
 
     const isActive = (path: string) => location.pathname === path;
@@ -158,17 +215,110 @@ const NavigationMenu = ({ user, onLogout }: NavigationMenuProps) => {
                                 <Search className="w-6 h-6" />
                             </button>
 
-                            <button
-                                onClick={() => setShowNotifications(!showNotifications)}
-                                className="relative p-2 hover:bg-slate-800/50 rounded-lg transition-colors"
-                            >
-                                <Bell className="w-6 h-6" />
-                                {unreadCount > 0 && (
-                                    <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold">
-                                        {unreadCount > 9 ? '9+' : unreadCount}
-                                    </span>
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowNotifications(!showNotifications)}
+                                    className="relative p-2 hover:bg-slate-800/50 rounded-lg transition-colors"
+                                >
+                                    <Bell className="w-6 h-6" />
+                                    {unreadCount > 0 && (
+                                        <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold">
+                                            {unreadCount > 9 ? '9+' : unreadCount}
+                                        </span>
+                                    )}
+                                </button>
+
+                                {/* Notifications Dropdown */}
+                                {showNotifications && (
+                                    <>
+                                        <div
+                                            className="fixed inset-0 z-40"
+                                            onClick={() => setShowNotifications(false)}
+                                        ></div>
+                                        <div className="absolute top-full right-0 mt-2 w-96 max-h-[600px] glass-card rounded-2xl shadow-2xl z-50 animate-slide-down overflow-hidden">
+                                            <div className="p-4 border-b border-slate-700 flex items-center justify-between">
+                                                <h3 className="text-lg font-bold">Notifications</h3>
+                                                {unreadCount > 0 && (
+                                                    <span className="text-sm text-blue-400">{unreadCount} new</span>
+                                                )}
+                                            </div>
+                                            <div className="max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-blue-500/50 scrollbar-track-slate-800/50">
+                                                {notifications.length === 0 ? (
+                                                    <div className="p-8 text-center text-gray-400">
+                                                        <Bell className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                                                        <p>No notifications yet</p>
+                                                    </div>
+                                                ) : (
+                                                    notifications.map((notif) => {
+                                                        // Get icon based on notification type
+                                                        const getNotificationIcon = (type: string) => {
+                                                            switch (type) {
+                                                                case 'offer':
+                                                                    return <Mail className="w-5 h-5 text-emerald-400" />;
+                                                                case 'message':
+                                                                    return <MessageCircle className="w-5 h-5 text-purple-400" />;
+                                                                case 'meetup':
+                                                                    return <Calendar className="w-5 h-5 text-pink-400" />;
+                                                                case 'friend_request':
+                                                                    return <UserPlus className="w-5 h-5 text-blue-400" />;
+                                                                case 'board_post':
+                                                                    return <MessageSquare className="w-5 h-5 text-cyan-400" />;
+                                                                default:
+                                                                    return <Bell className="w-5 h-5 text-gray-400" />;
+                                                            }
+                                                        };
+
+                                                        return (
+                                                            <Link
+                                                                key={notif.id}
+                                                                to={notif.link || '#'}
+                                                                onClick={() => {
+                                                                    markNotificationAsRead(notif.id);
+                                                                    setShowNotifications(false);
+                                                                }}
+                                                                className={`block p-4 border-b border-slate-800/50 hover:bg-slate-800/50 transition-all ${!notif.read ? 'bg-blue-500/10' : ''
+                                                                    }`}
+                                                            >
+                                                                <div className="flex items-start space-x-3">
+                                                                    <div className="flex-shrink-0 mt-1">
+                                                                        {getNotificationIcon(notif.type)}
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <p className="font-semibold text-sm">{notif.title}</p>
+                                                                            {!notif.read && (
+                                                                                <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0"></div>
+                                                                            )}
+                                                                        </div>
+                                                                        <p className="text-sm text-gray-400 mt-1">{notif.message}</p>
+                                                                        <p className="text-xs text-gray-500 mt-1">{notif.time}</p>
+                                                                    </div>
+                                                                </div>
+                                                            </Link>
+                                                        );
+                                                    })
+                                                )}
+                                            </div>
+                                            {notifications.length > 0 && (
+                                                <div className="p-3 border-t border-slate-700 flex items-center justify-center gap-3">
+                                                    <button
+                                                        onClick={markAllAsRead}
+                                                        className="text-sm text-blue-400 hover:text-blue-300 transition-colors px-3 py-1 rounded hover:bg-blue-500/10"
+                                                    >
+                                                        Mark all as read
+                                                    </button>
+                                                    <button
+                                                        onClick={clearAllNotifications}
+                                                        className="text-sm text-red-400 hover:text-red-300 transition-colors px-3 py-1 rounded hover:bg-red-500/10"
+                                                    >
+                                                        Clear all
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </>
                                 )}
-                            </button>
+                            </div>
                             <div className="hidden md:flex items-center space-x-3">
                                 <Link to="/profile" className="flex items-center space-x-3 hover:bg-slate-800/50 rounded-lg p-2 transition-colors">
                                     {/* Profile Picture */}
@@ -294,59 +444,6 @@ const NavigationMenu = ({ user, onLogout }: NavigationMenuProps) => {
 
             {/* Search Modal */}
             {showSearch && <UserSearchModal onClose={() => setShowSearch(false)} />}
-
-            {/* Notifications Dropdown */}
-            {showNotifications && (
-                <>
-                    <div
-                        className="fixed inset-0 z-40"
-                        onClick={() => setShowNotifications(false)}
-                    ></div>
-                    <div className="fixed top-20 right-4 w-96 max-h-[600px] glass-card rounded-2xl shadow-2xl z-50 animate-slide-down overflow-hidden">
-                        <div className="p-4 border-b border-slate-700 flex items-center justify-between">
-                            <h3 className="text-lg font-bold">Notifications</h3>
-                            {unreadCount > 0 && (
-                                <span className="text-sm text-blue-400">{unreadCount} new</span>
-                            )}
-                        </div>
-                        <div className="max-h-[500px] overflow-y-auto">
-                            {notifications.length === 0 ? (
-                                <div className="p-8 text-center text-gray-400">
-                                    <Bell className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                                    <p>No notifications yet</p>
-                                </div>
-                            ) : (
-                                notifications.map((notif) => (
-                                    <Link
-                                        key={notif.id}
-                                        to={notif.link || '#'}
-                                        onClick={() => setShowNotifications(false)}
-                                        className={`block p-4 border-b border-slate-800/50 hover:bg-slate-800/50 transition-all ${!notif.read ? 'bg-blue-500/10' : ''
-                                            }`}
-                                    >
-                                        <div className="flex items-start space-x-3">
-                                            <div className={`w-2 h-2 mt-2 rounded-full flex-shrink-0 ${!notif.read ? 'bg-blue-500' : 'bg-gray-600'
-                                                }`}></div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-semibold text-sm">{notif.title}</p>
-                                                <p className="text-sm text-gray-400 mt-1">{notif.message}</p>
-                                                <p className="text-xs text-gray-500 mt-1">{notif.time}</p>
-                                            </div>
-                                        </div>
-                                    </Link>
-                                ))
-                            )}
-                        </div>
-                        {notifications.length > 0 && (
-                            <div className="p-3 border-t border-slate-700 text-center">
-                                <button className="text-sm text-blue-400 hover:text-blue-300">
-                                    Mark all as read
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                </>
-            )}
         </>
     );
 };

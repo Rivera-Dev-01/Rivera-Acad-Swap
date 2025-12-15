@@ -20,6 +20,7 @@ def create_app():
     from app.routes.offer import offer_bp
     from app.routes.notifications import notifications_bp
     from app.routes.friends import friends_bp
+    from app.routes.feedback import feedback_bp
     
     
     print("Registering blueprints...")
@@ -51,6 +52,9 @@ def create_app():
     
     app.register_blueprint(friends_bp, url_prefix='/api/friends')
     print("✓ Friends blueprint registered")
+
+    app.register_blueprint(feedback_bp, url_prefix='/api/feedback')
+    print("✓ Feedback blueprint registered")
     
     @app.route('/')
     def index():

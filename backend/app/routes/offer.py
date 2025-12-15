@@ -166,7 +166,7 @@ def get_conversations():
 
 @offer_bp.route('/messages/<other_user_id>', methods=['GET'])
 def get_messages(other_user_id):
-    """Get all messages with a specific user"""
+    """Get recent messages with a specific user (limited, Messenger-style)"""
     auth_header = request.headers.get('Authorization')
     
     if not auth_header or not auth_header.startswith('Bearer '):
@@ -181,7 +181,11 @@ def get_messages(other_user_id):
     except Exception as e:
         return jsonify({"success": False, "message": "Invalid Token"}), 401
     
-    result = OfferService.get_messages(user_id, other_user_id)
+    # Optional query params for pagination
+    limit = request.args.get('limit', default=50, type=int)
+    before = request.args.get('before')  # ISO timestamp string
+
+    result = OfferService.get_messages(user_id, other_user_id, limit=limit, before=before)
     return jsonify(result)
 
 @offer_bp.route('/unread-count', methods=['GET'])

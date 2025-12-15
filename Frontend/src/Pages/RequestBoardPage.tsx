@@ -124,10 +124,21 @@ const RequestBoardPage = () => {
             const result = await response.json();
 
             if (result.success) {
-                alert('Request posted successfully!');
+                // Add new post to UI without full page reload
+                const created = (result.data && result.data[0]) as Post | undefined;
+                if (created) {
+                    const newPostWithMeta: Post = {
+                        ...created,
+                        user_first_name: user.first_name,
+                        user_last_name: user.last_name,
+                        like_count: 0,
+                        reply_count: 0,
+                        replies: []
+                    };
+                    setPosts(prev => [newPostWithMeta, ...prev]);
+                }
                 setShowNewPostModal(false);
                 setNewPost({ title: '', description: '', category: 'Textbooks', budget: '' });
-                window.location.reload();
             } else {
                 alert(result.message || 'Failed to post request');
             }
@@ -245,7 +256,7 @@ const RequestBoardPage = () => {
         const token = localStorage.getItem('sb-access-token') || localStorage.getItem('access_token');
 
         // Create optimistic reply
-        const tempReply = {
+        const tempReply: Reply = {
             id: `temp-${Date.now()}`,
             request_id: postId,
             user_id: user.id,
@@ -253,14 +264,22 @@ const RequestBoardPage = () => {
             created_at: new Date().toISOString(),
             user_first_name: user.first_name,
             user_last_name: user.last_name,
-            user_profile_picture: user.profile_picture
+            // message is used in UI, so mirror content
+            message: content
         };
 
-        // Add reply instantly to UI
-        setReplies(prev => ({
-            ...prev,
-            [postId]: [...(prev[postId] || []), tempReply]
-        }));
+        // Add reply instantly to the matching post
+        setPosts(prev =>
+            prev.map(p =>
+                p.id === postId
+                    ? {
+                        ...p,
+                        replies: [...(p.replies || []), tempReply],
+                        reply_count: (p.reply_count || 0) + 1
+                    }
+                    : p
+            )
+        );
 
         // Clear input immediately
         setReplyContent({ ...replyContent, [postId]: '' });
@@ -281,30 +300,56 @@ const RequestBoardPage = () => {
             const result = await response.json();
 
             if (result.success) {
-                // Replace temp reply with real one
-                setReplies(prev => ({
-                    ...prev,
-                    [postId]: (prev[postId] || []).map(r =>
-                        r.id === tempReply.id
-                            ? { ...tempReply, id: result.reply_id || tempReply.id }
-                            : r
-                    )
-                }));
+                // Replace temp reply with real one from backend (if returned)
+                const saved = (result.data && result.data[0]) as Reply | undefined;
+                if (saved) {
+                    const savedReply: Reply = {
+                        ...saved,
+                        user_first_name: user.first_name,
+                        user_last_name: user.last_name
+                    };
+                    setPosts(prev =>
+                        prev.map(p =>
+                            p.id === postId
+                                ? {
+                                    ...p,
+                                    replies: (p.replies || []).map(r =>
+                                        r.id === tempReply.id ? savedReply : r
+                                    )
+                                }
+                                : p
+                        )
+                    );
+                }
             } else {
                 // Rollback on error
-                setReplies(prev => ({
-                    ...prev,
-                    [postId]: (prev[postId] || []).filter(r => r.id !== tempReply.id)
-                }));
+                setPosts(prev =>
+                    prev.map(p =>
+                        p.id === postId
+                            ? {
+                                ...p,
+                                replies: (p.replies || []).filter(r => r.id !== tempReply.id),
+                                reply_count: Math.max((p.reply_count || 1) - 1, 0)
+                            }
+                            : p
+                    )
+                );
                 setReplyContent({ ...replyContent, [postId]: content });
             }
         } catch (error: any) {
             console.error('Error posting reply:', error);
             // Rollback on error
-            setReplies(prev => ({
-                ...prev,
-                [postId]: (prev[postId] || []).filter(r => r.id !== tempReply.id)
-            }));
+            setPosts(prev =>
+                prev.map(p =>
+                    p.id === postId
+                        ? {
+                            ...p,
+                            replies: (p.replies || []).filter(r => r.id !== tempReply.id),
+                            reply_count: Math.max((p.reply_count || 1) - 1, 0)
+                        }
+                        : p
+                )
+            );
             setReplyContent({ ...replyContent, [postId]: content });
         }
     };

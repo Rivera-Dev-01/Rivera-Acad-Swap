@@ -244,16 +244,44 @@ class OfferService:
             return {"success": False, "message": str(e)}
     
     @staticmethod
-    def get_messages(user_id: str, other_user_id: str) -> Dict:
-        """Get all messages between two users"""
+    def get_messages(user_id: str, other_user_id: str, limit: int = 50, before: Optional[str] = None) -> Dict:
+        """Get recent messages between two users (with limit & optional pagination)
+        
+        - Returns the most recent `limit` messages by default (like Messenger)
+        - If `before` is provided (ISO timestamp), returns messages older than that
+        """
         supabase = get_supabase()
         
         try:
-            # Get messages between the two users
-            messages_response = supabase.table('messages').select('*, users!messages_sender_id_fkey(first_name, last_name, profile_picture)').or_(f'and(sender_id.eq.{user_id},receiver_id.eq.{other_user_id}),and(sender_id.eq.{other_user_id},receiver_id.eq.{user_id})').order('created_at', desc=False).execute()
+            # Base query: messages between the two users, newest first
+            query = (
+                supabase
+                .table('messages')
+                .select('*, users!messages_sender_id_fkey(first_name, last_name, profile_picture)')
+                .or_(
+                    f'and(sender_id.eq.{user_id},receiver_id.eq.{other_user_id}),'
+                    f'and(sender_id.eq.{other_user_id},receiver_id.eq.{user_id})'
+                )
+                .order('created_at', desc=True)
+            )
+
+            # Optional "load older" pagination using created_at cursor
+            if before:
+                try:
+                    # Trust client to send a valid timestamp string; Supabase will validate
+                    query = query.lt('created_at', before)
+                except Exception as cursor_error:
+                    print(f"Invalid 'before' cursor passed to get_messages: {cursor_error}")
+
+            # Limit number of messages to keep initial load fast
+            if limit and limit > 0:
+                query = query.limit(limit)
+
+            messages_response = query.execute()
             
             messages = []
-            for msg in messages_response.data:
+            # Reverse back into chronological order (oldest → newest) for UI
+            for msg in reversed(messages_response.data or []):
                 messages.append({
                     **msg,
                     'sender_first_name': msg['users']['first_name'] if msg.get('users') else None,

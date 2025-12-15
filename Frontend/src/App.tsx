@@ -17,6 +17,7 @@ import ProfilePage from './Pages/ProfilePage';
 import UserProfileView from './components/UserProfileView';
 import FindUsersPage from './Pages/FindUsersPage';
 import FriendRequestsPage from './Pages/FriendRequestsPage';
+import FeedbackPage from './Pages/FeedbackPage';
 
 function App() {
   return (
@@ -40,6 +41,7 @@ function App() {
         <Route path="/find-users" element={<FindUsersPage />} />
         <Route path="/friend-requests" element={<FriendRequestsPage />} />
         <Route path="/user/:userId" element={<UserProfileView />} />
+        <Route path="/feedback" element={<FeedbackPage />} />
       </Routes>
     </Router>
   );

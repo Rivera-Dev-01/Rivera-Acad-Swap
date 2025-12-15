@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingBag, Users, Shield, Zap, ArrowRight, Menu, X, Star, TrendingUp } from 'lucide-react';
+import { ShoppingBag, Users, Shield, Zap, ArrowRight, Menu, X, Star } from 'lucide-react';
 
 export default function LandingPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -69,7 +69,6 @@ export default function LandingPage() {
             <div className="hidden md:flex items-center space-x-8">
               <a href="#features" className="hover:text-blue-400 transition-colors">Features</a>
               <a href="#how-it-works" className="hover:text-blue-400 transition-colors">How It Works</a>
-              <a href="#benefits" className="hover:text-blue-400 transition-colors">Benefits</a>
               <Link to="/login" className="px-6 py-2 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-full hover:shadow-lg hover:shadow-blue-500/50 transition-all hover:scale-105">
                 Get Started
               </Link>
@@ -91,7 +90,6 @@ export default function LandingPage() {
             <div className="px-4 py-4 space-y-4">
               <a href="#features" className="block hover:text-blue-400 transition-colors">Features</a>
               <a href="#how-it-works" className="block hover:text-blue-400 transition-colors">How It Works</a>
-              <a href="#benefits" className="block hover:text-blue-400 transition-colors">Benefits</a>
               <Link to="/login" className="block w-full px-6 py-2 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-full text-center">
                 Get Started
               </Link>
@@ -104,7 +102,7 @@ export default function LandingPage() {
       <section className="relative pt-32 pb-20 px-4">
         <div className="max-w-7xl mx-auto text-center">
           <div className="inline-block mb-6 px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded-full text-sm backdrop-blur-sm">
-            🎓 Built by students, for students
+            🎓 Built by student, for students
           </div>
 
           <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
@@ -124,26 +122,12 @@ export default function LandingPage() {
               <span>Start Selling Now</span>
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
-            <button className="px-8 py-4 border-2 border-blue-500/50 rounded-full text-lg font-semibold hover:bg-blue-500/10 transition-all backdrop-blur-sm">
+            <Link to="/login" className="px-8 py-4 border-2 border-blue-500/50 rounded-full text-lg font-semibold hover:bg-blue-500/10 transition-all backdrop-blur-sm">
               Browse Products
-            </button>
+            </Link>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-8 mt-20 max-w-3xl mx-auto">
-            <div className="p-6 bg-slate-900/50 backdrop-blur-sm border border-blue-500/20 rounded-2xl hover:border-blue-500/50 transition-all hover:scale-105">
-              <div className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">10K+</div>
-              <div className="text-gray-400 text-sm mt-2">Active Students</div>
-            </div>
-            <div className="p-6 bg-slate-900/50 backdrop-blur-sm border border-emerald-500/20 rounded-2xl hover:border-emerald-500/50 transition-all hover:scale-105">
-              <div className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">50K+</div>
-              <div className="text-gray-400 text-sm mt-2">Products Listed</div>
-            </div>
-            <div className="p-6 bg-slate-900/50 backdrop-blur-sm border border-teal-500/20 rounded-2xl hover:border-teal-500/50 transition-all hover:scale-105">
-              <div className="text-3xl font-bold bg-gradient-to-r from-teal-400 to-blue-400 bg-clip-text text-transparent">98%</div>
-              <div className="text-gray-400 text-sm mt-2">Satisfaction Rate</div>
-            </div>
-          </div>
+
         </div>
       </section>
 
@@ -157,7 +141,7 @@ export default function LandingPage() {
             Built with cutting-edge technology to provide the best marketplace experience for university students
           </p>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid md:grid-cols-3 gap-8">
             <div className="group p-8 bg-slate-900/50 backdrop-blur-sm border border-blue-500/20 rounded-2xl hover:border-blue-500/50 transition-all hover:transform hover:scale-105">
               <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center mb-6 group-hover:shadow-lg group-hover:shadow-blue-500/50 transition-all">
                 <Shield className="w-7 h-7" />
@@ -182,13 +166,7 @@ export default function LandingPage() {
               <p className="text-gray-400">Connect with students from your own university and build lasting relationships</p>
             </div>
 
-            <div className="group p-8 bg-slate-900/50 backdrop-blur-sm border border-blue-500/20 rounded-2xl hover:border-blue-500/50 transition-all hover:transform hover:scale-105">
-              <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-xl flex items-center justify-center mb-6 group-hover:shadow-lg group-hover:shadow-blue-500/50 transition-all">
-                <TrendingUp className="w-7 h-7" />
-              </div>
-              <h3 className="text-xl font-bold mb-3">Smart Pricing</h3>
-              <p className="text-gray-400">AI-powered price suggestions help you price items competitively and fairly</p>
-            </div>
+
           </div>
         </div>
       </section>
@@ -250,7 +228,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="py-12 px-4 border-t border-blue-500/20 relative">
         <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
+          <div className="grid md:grid-cols-3 gap-8 mb-8">
             <div>
               <div className="flex items-center space-x-2 mb-4">
                 <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-lg flex items-center justify-center">
@@ -262,35 +240,47 @@ export default function LandingPage() {
             </div>
 
             <div>
-              <h4 className="font-bold mb-4">Product</h4>
+              <h4 className="font-bold mb-4">Developer</h4>
+              <p className="text-gray-400 text-sm mb-2">Miggy G. Rivera</p>
               <ul className="space-y-2 text-gray-400 text-sm">
-                <li><a href="#" className="hover:text-blue-400 transition-colors">Features</a></li>
-                <li><a href="#" className="hover:text-blue-400 transition-colors">Pricing</a></li>
-                <li><a href="#" className="hover:text-blue-400 transition-colors">Security</a></li>
+                <li>
+                  <a
+                    href="https://github.com/Rivera-Dev-01"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-blue-400 transition-colors flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                    </svg>
+                    GitHub
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="mailto:Rivera.dev.miggy@gmail.com"
+                    className="hover:text-blue-400 transition-colors flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    Email
+                  </a>
+                </li>
               </ul>
             </div>
 
             <div>
-              <h4 className="font-bold mb-4">Company</h4>
+              <h4 className="font-bold mb-4">Features</h4>
               <ul className="space-y-2 text-gray-400 text-sm">
-                <li><a href="#" className="hover:text-blue-400 transition-colors">About</a></li>
-                <li><a href="#" className="hover:text-blue-400 transition-colors">Blog</a></li>
-                <li><a href="#" className="hover:text-blue-400 transition-colors">Careers</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-bold mb-4">Support</h4>
-              <ul className="space-y-2 text-gray-400 text-sm">
-                <li><a href="#" className="hover:text-blue-400 transition-colors">Help Center</a></li>
-                <li><a href="#" className="hover:text-blue-400 transition-colors">Contact</a></li>
-                <li><a href="#" className="hover:text-blue-400 transition-colors">Privacy</a></li>
+                <li><a href="#features" className="hover:text-blue-400 transition-colors">Why Choose Us</a></li>
+                <li><a href="#how-it-works" className="hover:text-blue-400 transition-colors">How It Works</a></li>
               </ul>
             </div>
           </div>
 
           <div className="pt-8 border-t border-blue-500/20 text-center text-gray-400 text-sm">
-            <p>© 2024 Acad Swap UnifiedMarket. All rights reserved.</p>
+            <p>© 2025 Acad Swap. Developed by Miggy G. Rivera</p>
           </div>
         </div>
       </footer>

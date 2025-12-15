@@ -209,8 +209,19 @@ const MessagesPage = () => {
                         ? { ...tempMessage, id: data.message_id || tempMessage.id }
                         : m
                 ));
-                // Update conversations list without reload
-                fetchConversations();
+                // Update conversations list locally so it doesn't "reload" UX
+                setConversations(prev =>
+                    prev.map(conv =>
+                        conv.other_user_id === selectedConversation.other_user_id
+                            ? {
+                                ...conv,
+                                last_message: messageText,
+                                last_message_time: new Date().toISOString(),
+                                unread_count: 0
+                            }
+                            : conv
+                    )
+                );
             } else {
                 // Rollback on error
                 setMessages(prev => prev.filter(m => m.id !== tempMessage.id));
