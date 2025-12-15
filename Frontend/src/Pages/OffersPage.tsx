@@ -4,6 +4,7 @@ import { Package, Check, X, Clock } from 'lucide-react';
 import NavigationMenu from '../components/NavigationMenu';
 import ProfileAvatar from '../components/ProfileAvatar';
 import Toast from '../components/Toast';
+import { useRealtimeOffers } from '../hooks/useRealtimeData';
 
 const API_URL = 'http://localhost:5000/api';
 
@@ -65,6 +66,12 @@ const OffersPage = () => {
             fetchAllOffers();
         }
     }, [user]);
+
+    // Real-time offers - instant updates!
+    useRealtimeOffers(user?.id || '', (newOffer) => {
+        console.log('New offer received:', newOffer);
+        fetchAllOffers(); // Refresh to get full offer data
+    });
 
     useEffect(() => {
         const handleScroll = () => {

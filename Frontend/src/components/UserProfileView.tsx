@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Camera, Mail, Phone, MapPin, BookOpen, Calendar, Award, UserPlus, ArrowLeft } from 'lucide-react';
+import { Camera, Mail, Phone, MapPin, BookOpen, Calendar, Award, UserPlus, ArrowLeft, Check, Clock, UserX } from 'lucide-react';
 import NavigationMenu from './NavigationMenu';
+import Toast from './Toast';
 
 const API_URL = 'http://localhost:5000/api';
 
@@ -12,6 +13,8 @@ const UserProfileView = () => {
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [scrollY, setScrollY] = useState(0);
+    const [friendshipStatus, setFriendshipStatus] = useState<string>('none');
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
     useEffect(() => {
         const userData = localStorage.getItem('user');
@@ -26,6 +29,9 @@ const UserProfileView = () => {
         }
 
         fetchUserProfile();
+        if (userId) {
+            fetchFriendshipStatus();
+        }
 
         // Scroll effect
         const handleScroll = () => {
@@ -54,6 +60,50 @@ const UserProfileView = () => {
             console.error('Error fetching user profile:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchFriendshipStatus = async () => {
+        const token = localStorage.getItem('access_token');
+        if (!token || !userId) return;
+
+        try {
+            const response = await fetch(`${API_URL}/friends/status/${userId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                setFriendshipStatus(data.status);
+            }
+        } catch (error) {
+            console.error('Error fetching friendship status:', error);
+        }
+    };
+
+    const handleAddFriend = async () => {
+        const token = localStorage.getItem('access_token');
+        if (!token || !userId) return;
+
+        try {
+            const response = await fetch(`${API_URL}/friends/request/send`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ receiver_id: userId })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                setToast({ message: 'Friend request sent!', type: 'success' });
+                setFriendshipStatus('pending_sent');
+            } else {
+                setToast({ message: data.message || 'Failed to send friend request', type: 'error' });
+            }
+        } catch (error) {
+            setToast({ message: 'Failed to send friend request', type: 'error' });
         }
     };
 
@@ -164,18 +214,45 @@ const UserProfileView = () => {
                                 </div>
                             </div>
 
-                            {/* Add Friend Button (only for other users) */}
+                            {/* Friend Action Button (only for other users) */}
                             {!isOwnProfile && (
-                                <button
-                                    className="px-6 py-3 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-lg hover:shadow-lg hover:shadow-blue-500/50 transition-all flex items-center space-x-2 font-semibold"
-                                    onClick={() => {
-                                        // TODO: Implement friend request functionality
-                                        console.log('Add friend clicked');
-                                    }}
-                                >
-                                    <UserPlus className="w-5 h-5" />
-                                    <span>Add Friend</span>
-                                </button>
+                                <>
+                                    {friendshipStatus === 'none' && (
+                                        <button
+                                            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-lg hover:shadow-lg hover:shadow-blue-500/50 transition-all flex items-center space-x-2 font-semibold"
+                                            onClick={handleAddFriend}
+                                        >
+                                            <UserPlus className="w-5 h-5" />
+                                            <span>Add Friend</span>
+                                        </button>
+                                    )}
+                                    {friendshipStatus === 'pending_sent' && (
+                                        <button
+                                            className="px-6 py-3 bg-slate-700 rounded-lg cursor-not-allowed flex items-center space-x-2 font-semibold"
+                                            disabled
+                                        >
+                                            <Clock className="w-5 h-5" />
+                                            <span>Request Sent</span>
+                                        </button>
+                                    )}
+                                    {friendshipStatus === 'pending_received' && (
+                                        <button
+                                            className="px-6 py-3 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-lg hover:shadow-lg hover:shadow-yellow-500/50 transition-all flex items-center space-x-2 font-semibold"
+                                            onClick={() => navigate('/friend-requests')}
+                                        >
+                                            <Clock className="w-5 h-5" />
+                                            <span>Respond to Request</span>
+                                        </button>
+                                    )}
+                                    {friendshipStatus === 'active' && (
+                                        <button
+                                            className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg flex items-center space-x-2 font-semibold cursor-default"
+                                        >
+                                            <Check className="w-5 h-5" />
+                                            <span>Friends</span>
+                                        </button>
+                                    )}
+                                </>
                             )}
                         </div>
 
@@ -251,6 +328,15 @@ const UserProfileView = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Toast Notification */}
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
+            )}
         </div>
     );
 };

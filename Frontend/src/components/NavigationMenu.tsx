@@ -21,6 +21,7 @@ import {
     Users
 } from 'lucide-react';
 import UserSearchModal from './UserSearchModal';
+import { useRealtimeNotifications } from '../hooks/useRealtimeData';
 
 interface NavigationMenuProps {
     user: any;
@@ -73,6 +74,12 @@ const NavigationMenu = ({ user, onLogout }: NavigationMenuProps) => {
             fetchNotifications();
         }
     }, [user]);
+
+    // Real-time notifications - no more polling!
+    useRealtimeNotifications(user?.id || '', (newNotification) => {
+        console.log('New notification received:', newNotification);
+        setNotifications(prev => [newNotification, ...prev]);
+    });
 
     // Fetch notifications
     const fetchNotifications = async () => {

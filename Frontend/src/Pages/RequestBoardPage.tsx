@@ -239,26 +239,39 @@ const RequestBoardPage = () => {
     const handleReply = async (postId: string) => {
         const content = replyContent[postId];
         if (!content || !content.trim()) {
-            alert('Please enter a reply');
             return;
         }
 
+        const token = localStorage.getItem('sb-access-token') || localStorage.getItem('access_token');
+
+        // Create optimistic reply
+        const tempReply = {
+            id: `temp-${Date.now()}`,
+            request_id: postId,
+            user_id: user.id,
+            content: content,
+            created_at: new Date().toISOString(),
+            user_first_name: user.first_name,
+            user_last_name: user.last_name,
+            user_profile_picture: user.profile_picture
+        };
+
+        // Add reply instantly to UI
+        setReplies(prev => ({
+            ...prev,
+            [postId]: [...(prev[postId] || []), tempReply]
+        }));
+
+        // Clear input immediately
+        setReplyContent({ ...replyContent, [postId]: '' });
+
         try {
-            const token = localStorage.getItem('sb-access-token') || localStorage.getItem('access_token');
-
-            console.log('Posting reply:', {
-                postId,
-                content,
-                endpoint: `http://localhost:5000/api/board/requests/${postId}/replies`
-            });
-
             const response = await fetch(`http://localhost:5000/api/board/requests/${postId}/replies`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                // CHANGE HERE: Send both content and message to satisfy the database constraint
                 body: JSON.stringify({
                     content: content,
                     message: content
@@ -266,23 +279,33 @@ const RequestBoardPage = () => {
             });
 
             const result = await response.json();
-            console.log('Reply response:', result);
 
             if (result.success) {
-                alert('Reply posted! (Refresh to see it)');
-                // Clear input
-                setReplyContent({ ...replyContent, [postId]: '' });
-                // Refresh replies
-                if (expandedPosts[postId]) {
-                    setExpandedPosts({ ...expandedPosts, [postId]: false });
-                    setTimeout(() => toggleReplies(postId), 100);
-                }
+                // Replace temp reply with real one
+                setReplies(prev => ({
+                    ...prev,
+                    [postId]: (prev[postId] || []).map(r =>
+                        r.id === tempReply.id
+                            ? { ...tempReply, id: result.reply_id || tempReply.id }
+                            : r
+                    )
+                }));
             } else {
-                alert(result.message || 'Failed to post reply');
+                // Rollback on error
+                setReplies(prev => ({
+                    ...prev,
+                    [postId]: (prev[postId] || []).filter(r => r.id !== tempReply.id)
+                }));
+                setReplyContent({ ...replyContent, [postId]: content });
             }
         } catch (error: any) {
             console.error('Error posting reply:', error);
-            alert('Failed to post reply: ' + error.message);
+            // Rollback on error
+            setReplies(prev => ({
+                ...prev,
+                [postId]: (prev[postId] || []).filter(r => r.id !== tempReply.id)
+            }));
+            setReplyContent({ ...replyContent, [postId]: content });
         }
     };
 

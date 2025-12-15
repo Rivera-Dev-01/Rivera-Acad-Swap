@@ -4,6 +4,7 @@ import { MessageCircle, Send, ArrowLeft } from 'lucide-react';
 import NavigationMenu from '../components/NavigationMenu';
 import ProfileAvatar from '../components/ProfileAvatar';
 import Toast from '../components/Toast';
+import { useRealtimeMessages } from '../hooks/useRealtimeData';
 
 const API_URL = 'http://localhost:5000/api';
 
@@ -69,16 +70,21 @@ const MessagesPage = () => {
         }
     }, [messages.length, scrollToBottom]);
 
-    // Polling for active conversation (reduced frequency)
-    useEffect(() => {
-        if (!selectedConversation) return;
+    // Real-time messages - no more polling!
+    useRealtimeMessages(user?.id || '', (newMessage) => {
+        console.log('New message received:', newMessage);
 
-        const messageInterval = setInterval(() => {
-            fetchMessages(selectedConversation.other_user_id);
-        }, 10000); // Poll every 10 seconds instead of 5
+        // If message is for current conversation, add it
+        if (selectedConversation &&
+            (newMessage.sender_id === selectedConversation.other_user_id ||
+                newMessage.receiver_id === selectedConversation.other_user_id)) {
+            setMessages(prev => [...prev, newMessage]);
+            scrollToBottom();
+        }
 
-        return () => clearInterval(messageInterval);
-    }, [selectedConversation?.other_user_id]);
+        // Refresh conversations list
+        fetchConversations();
+    });
 
     // Handle navigation state
     useEffect(() => {
@@ -197,9 +203,13 @@ const MessagesPage = () => {
 
             const data = await response.json();
             if (data.success) {
-                // Refresh messages to get real IDs
-                await fetchMessages(selectedConversation.other_user_id);
-                // Also refresh conversations to update last message
+                // Replace temp message with real one (no reload!)
+                setMessages(prev => prev.map(m =>
+                    m.id === tempMessage.id
+                        ? { ...tempMessage, id: data.message_id || tempMessage.id }
+                        : m
+                ));
+                // Update conversations list without reload
                 fetchConversations();
             } else {
                 // Rollback on error

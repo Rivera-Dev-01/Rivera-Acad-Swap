@@ -197,6 +197,32 @@ const DashboardPage = () => {
         console.log('Dashboard data received:', apiData);
     }
 
+    // Fetch friends count
+    const [friendsCount, setFriendsCount] = useState(0);
+
+    useEffect(() => {
+        const fetchFriendsCount = async () => {
+            const token = localStorage.getItem('access_token');
+            if (!token) return;
+
+            try {
+                const response = await fetch('http://localhost:5000/api/friends/list', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    setFriendsCount(data.friends?.length || 0);
+                }
+            } catch (error) {
+                console.error('Error fetching friends count:', error);
+            }
+        };
+
+        if (user) {
+            fetchFriendsCount();
+        }
+    }, [user]);
+
     // 6. Merge API Data with Default Data
     // We calculate this on every render. If apiData is loaded, it overrides defaults.
     const stats = {
@@ -209,8 +235,8 @@ const DashboardPage = () => {
         // Reputation score from user data
         reputationScore: apiData?.user?.reputation_score ?? 0,
 
-        // This does NOT exist in your Backend yet.
-        friendsCount: 0
+        // Friends count from friends API
+        friendsCount: friendsCount
     };
 
     // Animated counts for smooth number transitions with fluid easing
@@ -220,6 +246,7 @@ const DashboardPage = () => {
     const animatedTotalEarnings = useCountUp(stats.totalEarnings, 2400, !!apiData);
     const animatedReputationScore = useCountUp(stats.reputationScore, 2600, !!apiData);
     const animatedEngagementRate = useCountUp(stats.engagementRate, 2800, !!apiData);
+    const animatedFriendsCount = useCountUp(stats.friendsCount, 3000, friendsCount > 0);
 
 
 
@@ -438,7 +465,7 @@ const DashboardPage = () => {
                                 <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-pink-700 rounded-xl flex items-center justify-center">
                                     <Users className="w-6 h-6" />
                                 </div>
-                                <span className="text-2xl font-bold">{stats.friendsCount}</span>
+                                <span className="text-2xl font-bold">{animatedFriendsCount}</span>
                             </div>
                             <h3 className="text-gray-400 text-sm">Friends</h3>
                         </div>

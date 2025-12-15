@@ -4,6 +4,8 @@ import { UserPlus, Check, X, Users } from 'lucide-react';
 import NavigationMenu from '../components/NavigationMenu';
 import ProfileAvatar from '../components/ProfileAvatar';
 import Toast from '../components/Toast';
+import { useRealtimeFriendRequests } from '../hooks/useRealtimeData';
+import { useOptimisticUpdate } from '../hooks/useOptimisticUpdate';
 
 const API_URL = 'http://localhost:5000/api';
 
@@ -22,9 +24,18 @@ interface FriendRequest {
 const FriendRequestsPage = () => {
     const navigate = useNavigate();
     const [user, setUser] = useState<any>(null);
-    const [requests, setRequests] = useState<FriendRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+    // Optimistic updates for instant UI feedback
+    const {
+        data: requests,
+        setData: setRequests,
+        deleteOptimistic
+    } = useOptimisticUpdate<FriendRequest>([], {
+        onSuccess: () => setToast({ message: 'Request updated!', type: 'success' }),
+        onError: () => setToast({ message: 'Failed to update request', type: 'error' })
+    });
 
     useEffect(() => {
         const userData = localStorage.getItem('user');
@@ -45,8 +56,15 @@ const FriendRequestsPage = () => {
         }
     }, [user]);
 
+    // Real-time friend requests - instant updates!
+    useRealtimeFriendRequests(user?.id || '', (newRequest) => {
+        console.log('New friend request received:', newRequest);
+        if (newRequest.status === 'pending') {
+            fetchFriendRequests(); // Refresh to get full user data
+        }
+    });
+
     const fetchFriendRequests = async () => {
-        setLoading(true);
         const token = localStorage.getItem('access_token');
 
         try {
@@ -67,22 +85,14 @@ const FriendRequestsPage = () => {
     const handleRequest = async (requestId: string, action: 'accept' | 'reject') => {
         const token = localStorage.getItem('access_token');
 
-        try {
+        // Optimistic update - remove from UI immediately
+        await deleteOptimistic(requestId, async () => {
             const response = await fetch(`${API_URL}/friends/request/${requestId}/${action}`, {
                 method: 'PUT',
                 headers: { Authorization: `Bearer ${token}` }
             });
-
-            const data = await response.json();
-            if (data.success) {
-                setToast({ message: `Friend request ${action}ed!`, type: 'success' });
-                fetchFriendRequests();
-            } else {
-                setToast({ message: data.message, type: 'error' });
-            }
-        } catch (error) {
-            setToast({ message: 'Failed to process request', type: 'error' });
-        }
+            return await response.json();
+        });
     };
 
     if (!user || loading) {

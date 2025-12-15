@@ -5,6 +5,7 @@ import NavigationMenu from '../components/NavigationMenu';
 import ProfileAvatar from '../components/ProfileAvatar';
 import MakeOfferModal from '../components/MakeOfferModal';
 import Toast from '../components/Toast';
+import { useRealtimeItems } from '../hooks/useRealtimeData';
 
 // Custom Peso Icon
 const PesoIcon = ({ className }: { className?: string }) => (
@@ -91,6 +92,21 @@ const MarketplacePage = () => {
 
         fetchItems();
     }, []);
+
+    // Real-time marketplace - instant updates!
+    useRealtimeItems((changedItem) => {
+        console.log('Item changed:', changedItem);
+        setItems(prev => {
+            const exists = prev.find(item => item.id === changedItem.id);
+            if (exists) {
+                // Update existing item
+                return prev.map(item => item.id === changedItem.id ? changedItem : item);
+            } else {
+                // Add new item
+                return [changedItem, ...prev];
+            }
+        });
+    });
 
     const handleCategoryClick = (category: string) => {
         setActiveCategory(category);
