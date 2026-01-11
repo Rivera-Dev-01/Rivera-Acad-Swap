@@ -6,8 +6,9 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
     
-    # 1. Allow React (port 5173) to talk to this backend
-    CORS(app, resources={r"/*": {"origins": "*"}}) 
+    # CORS: Restrict origins to allowed domains only
+    # Set CORS_ORIGINS env var in production (e.g., "https://rivera-acad-swap.vercel.app")
+    CORS(app, resources={r"/*": {"origins": app.config["CORS_ORIGINS"]}}) 
     
     # Register blueprints
     from app.routes.auth import auth_bp
